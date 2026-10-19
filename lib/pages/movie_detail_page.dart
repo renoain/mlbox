@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
 import '../providers/movie_provider.dart';
-import '../widgets/rating_stars.dart'; // Panggil widget rating
+import '../widgets/rating_stars.dart';
 
 class MovieDetailPage extends ConsumerWidget {
   final int movieId;
@@ -30,30 +30,22 @@ class MovieDetailPage extends ConsumerWidget {
         data: (movie) {
           return CustomScrollView(
             slivers: [
-              // 1. BACKDROP & POSTER KECIL
+              // Backdrop & Judul
               SliverAppBar(
-                expandedHeight: 350.0,
+                expandedHeight: 300.0,
                 pinned: true,
                 backgroundColor: AppTheme.background,
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => context.pop(),
                 ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.more_vert, color: Colors.white),
-                    onPressed: () {},
-                  ),
-                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Gambar Backdrop (Pakai Poster dulu)
                       movie.posterUrl != null
                           ? Image.network(movie.posterUrl!, fit: BoxFit.cover)
                           : Container(color: AppTheme.surface),
-                      // Gradient gelap di bawah
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -64,7 +56,6 @@ class MovieDetailPage extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      // Judul, Tahun, & Poster Kecil
                       Positioned(
                         bottom: 16,
                         left: 16,
@@ -86,7 +77,7 @@ class MovieDetailPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${movie.releaseDate} • ${movie.runtime} mins',
+                                    '${movie.releaseDate ?? ""} • ${movie.runtime ?? 0} mins',
                                     style: const TextStyle(
                                       color: AppTheme.textSecondary,
                                       fontSize: 13,
@@ -95,7 +86,6 @@ class MovieDetailPage extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            // Poster Kecil di Kanan (menindih backdrop)
                             Container(
                               width: 70,
                               height: 100,
@@ -122,14 +112,14 @@ class MovieDetailPage extends ConsumerWidget {
                 ),
               ),
 
-              // 2. KONTEN DETAIL (Sinopsis, Rating, dll)
+              // Konten
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Rating Stars (Tugas Teman B)
+                      // Rating Section
                       Row(
                         children: [
                           const Text(
@@ -142,25 +132,21 @@ class MovieDetailPage extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          const RatingStars(
-                            rating: 4,
-                          ), // Dummy rating 4 bintang
+                          const RatingStars(rating: 4),
                         ],
                       ),
                       const SizedBox(height: 20),
 
-                      // Tombol Aksi (Watchlist & Watched) - Warna Hijau & Abu
+                      // Tombol Watchlist & Watched
                       Row(
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Logika tambah ke Watchlist
-                              },
+                              onPressed: () {},
                               icon: const Icon(Icons.add, size: 18),
                               label: const Text('WATCHLIST'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary, // HIJAU
+                                backgroundColor: AppTheme.primary,
                                 foregroundColor: Colors.black,
                               ),
                             ),
@@ -168,15 +154,11 @@ class MovieDetailPage extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Logika tandai Watched
-                              },
+                              onPressed: () {},
                               icon: const Icon(Icons.check, size: 18),
                               label: const Text('WATCHED'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(
-                                  0xFF3B444F,
-                                ), // ABU-ABU
+                                backgroundColor: const Color(0xFF3B444F),
                                 foregroundColor: Colors.white,
                               ),
                             ),
@@ -194,9 +176,27 @@ class MovieDetailPage extends ConsumerWidget {
                           fontSize: 14,
                         ),
                       ),
+                      const SizedBox(height: 24),
+
+                      // Tombol Tulis Review
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          // Pindah ke form review, bawa ID film
+                          context.push('/movie/${movie.id}/review');
+                        },
+                        icon: const Icon(Icons.edit, color: AppTheme.primary),
+                        label: const Text(
+                          'TULIS REVIEW',
+                          style: TextStyle(color: AppTheme.primary),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                          side: const BorderSide(color: AppTheme.primary),
+                        ),
+                      ),
                       const SizedBox(height: 30),
 
-                      // Section Cast
+                      // Cast
                       const Text(
                         'CAST',
                         style: TextStyle(
@@ -220,7 +220,6 @@ class MovieDetailPage extends ConsumerWidget {
     );
   }
 
-  // Widget Bantuan untuk Baris Cast
   Widget _buildCastRow(String name, String character) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
