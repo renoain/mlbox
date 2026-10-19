@@ -1,98 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/app_theme.dart';
+import '../widgets/lb_widgets.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
   @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
+  bool _acceptTerms = false;
+  bool _acceptPrivacy = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+    const bold = TextStyle(fontWeight: FontWeight.w700);
+    return AuthShell(
+      heroAsset: 'assets/images/auth_register_hero.png',
+      heroFraction: 0.54,
+      title: 'Join MLBox',
+      onClose: () => context.pop(),
+      fields: [
+        const AuthField(
+          hint: 'Email address',
+          keyboardType: TextInputType.emailAddress,
         ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              // --- Judul ---
-              const Text(
-                'Create Account',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Join MLBox to track your films',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-              ),
-              const SizedBox(height: 40),
-
-              // --- Form Nama ---
-              const TextField(
-                decoration: InputDecoration(
-                  hintText: 'Username',
-                  prefixIcon: Icon(
-                    Icons.person_outline,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // --- Form Email ---
-              const TextField(
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: 'Email address',
-                  prefixIcon: Icon(
-                    Icons.email_outlined,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // --- Form Password ---
-              const TextField(
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  prefixIcon: Icon(
-                    Icons.lock_outline,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // --- Tombol Register ---
-              ElevatedButton(
-                onPressed: () {
-                  // Nanti Lead yang akan menyambungkan ini ke API
-                  context.go('/home');
-                },
-                child: const Text('SIGN UP'),
-              ),
-            ],
+        const AuthField(hint: 'Username'),
+        const AuthField(hint: 'Password', obscure: true),
+        AuthConsentRow(
+          value: _acceptTerms,
+          onChanged: (v) => setState(() => _acceptTerms = v),
+          child: const Text.rich(
+            TextSpan(
+              text: "I'm at least 16 years old and accept the ",
+              children: [TextSpan(text: 'Terms of Use', style: bold)],
+            ),
           ),
         ),
+        AuthConsentRow(
+          value: _acceptPrivacy,
+          showDivider: false,
+          onChanged: (v) => setState(() => _acceptPrivacy = v),
+          child: const Text.rich(
+            TextSpan(
+              text: 'I accept the ',
+              children: [
+                TextSpan(text: 'Privacy Policy', style: bold),
+                TextSpan(
+                  text:
+                      ' and consent to the processing of my personal '
+                      'information in accordance with it',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      buttons: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          LbOutlineButton(label: 'SIGN IN', onPressed: () => context.pop()),
+          const SizedBox(width: 10),
+          LbOutlineButton(label: 'RESET PASSWORD', onPressed: () {}),
+          const SizedBox(width: 10),
+          LbGreenButton(
+            label: 'JOIN',
+            // Nanti Lead yang akan menyambungkan ini ke API
+            onPressed: () => context.go('/home'),
+          ),
+        ],
       ),
+      credit: const AuthCredit(film: 'Onward'),
     );
   }
 }
