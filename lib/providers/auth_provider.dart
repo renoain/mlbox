@@ -1,83 +1,41 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:dio/dio.dart';
-
-import '../core/api_client.dart';
-import '../core/storage.dart';
-
-class AuthState {
-  final bool isLoading;
-  final bool isAuthenticated;
-  final String? errorMessage;
-
-  AuthState({
-    this.isLoading = false,
-    this.isAuthenticated = false,
-    this.errorMessage,
-  });
-
-  AuthState copyWith({
-    bool? isLoading,
-    bool? isAuthenticated,
-    String? errorMessage,
-  }) {
-    return AuthState(
-      isLoading: isLoading ?? this.isLoading,
-      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      errorMessage: errorMessage ?? this.errorMessage,
-    );
+// Fungsi untuk mengecek apakah user sudah login sebelumnya (dipanggil di Splash/Home)
+Future<void> checkSession() async {
+  final token = await TokenStorage.getToken();
+  if (token != null) {
+    // Jika token ada, kita anggap valid. (Bisa ditingkatkan dengan memanggil /user endpoint)
+    state = state.copyWith(isAuthenticated: true);
+    // Catatan: Idealnya ambil data user dari /api/user lalu simpan ke state
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier();
-});
+// Fungsi Register
+Future<bool> register(String name, String email, String password) async {
+  state = state.copyWith(isLoading: true, errorMessage: null);
+  try {
+    final response = await _api.dio.post(
+      '/register',
+      data: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'password_confirmation': password, // Jika backend minta konfirmasi
+      },
+    );
 
-class AuthNotifier extends StateNotifier<AuthState> {
-  final ApiClient _api = ApiClient();
+    final data = response.data['data'] ?? response.data;
+    final token = data['token'];
+    final userJson = data['user'];
 
-  AuthNotifier() : super(AuthState()) {
-    checkAuthStatus(); // Cek token saat aplikasi pertama dibuka
-  }
-
-  // Cek apakah user punya token di HP (sudah login sebelumnya)
-  Future<void> checkAuthStatus() async {
-    state = state.copyWith(isLoading: true);
-    final token = await TokenStorage.getToken();
     if (token != null) {
-      state = state.copyWith(isAuthenticated: true, isLoading: false);
-    } else {
-      state = state.copyWith(isAuthenticated: false, isLoading: false);
+      await TokenStorage.saveToken(token);
+      final user = User.fromJson(userJson);
+      state = state.copyWith(isLoading: false, user: user);
+      return true;
     }
-  }
-
-  // Fungsi Login (dipanggil dari halaman Login)
-  Future<bool> login(String email, String password) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-    try {
-      final response = await _api.dio.post(
-        '/login',
-        data: {'email': email, 'password': password},
-      );
-
-      // Sesuaikan path JSON ini dengan respons backend lama (Mailboxh)
-      final token = response.data['data']?['token'] ?? response.data['token'];
-
-      if (token != null) {
-        await TokenStorage.saveToken(token);
-        state = state.copyWith(isAuthenticated: true, isLoading: false);
-        return true;
-      }
-      return false;
-    } on DioException catch (e) {
-      final message = e.response?.data['message'] ?? 'Login gagal';
-      state = state.copyWith(isLoading: false, errorMessage: message);
-      return false;
-    }
-  }
-
-  // Fungsi Logout (dipanggil dari Profil)
-  Future<void> logout() async {
-    await TokenStorage.deleteToken();
-    state = AuthState(isAuthenticated: false);
+    return false;
+  } on DioException catch (e) {
+    final message = e.response?.data['message'] ?? 'Register gagal.';
+    state = state.copyWith(isLoading: false, errorMessage: message);
+    return false;
   }
 }
