@@ -37,7 +37,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/images/auth_login_hero.png
-    - assets/images/auth_register_hero.png
