@@ -14,18 +14,19 @@ import 'pages/watchlist_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/movie_detail_page.dart';
 import 'pages/login_page.dart';
+import 'pages/review_form_page.dart'; // <-- TAMBAHAN BARU
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/splash', // Aplikasi dimulai dari Splash Screen
+  initialLocation: '/splash',
   routes: [
-    // 1. Rute Splash Screen (Tanpa Bottom Nav)
+    // 1. Splash Screen
     GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
 
-    // 2. Rute Utama dengan Bottom Navigation Bar
+    // 2. Bottom Navigation
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) => MainNavigation(child: child),
@@ -46,23 +47,32 @@ final appRouter = GoRouter(
       ],
     ),
 
-    // 3. Rute Detail Film (Tanpa Bottom Nav, Layar Penuh)
-    // Menerima parameter ID dari URL (misal: /movie/1)
+    // 3. Rute Detail Film
     GoRoute(
       path: '/movie/:id',
       builder: (context, state) {
         final movieId = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
         return MovieDetailPage(movieId: movieId);
       },
+      // SUB-RUTE UNTUK FORM REVIEW (Akses: /movie/1/review)
+      routes: [
+        GoRoute(
+          path: 'review',
+          builder: (context, state) {
+            final movieId =
+                int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+            return ReviewFormPage(movieId: movieId);
+          },
+        ),
+      ],
     ),
 
-    // 4. Rute Autentikasi (Login)
+    // 4. Login
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
   ],
 );
 
 void main() {
-  // ProviderScope wajib ada untuk menggunakan Riverpod
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -73,10 +83,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'MLBox',
-      theme: AppTheme.darkTheme, // Tema gelap #14181C
+      theme: AppTheme.darkTheme,
       routerConfig: appRouter,
-      debugShowCheckedModeBanner:
-          false, // Menghilangkan banner "Debug" di pojok
+      debugShowCheckedModeBanner: false,
     );
   }
 }
