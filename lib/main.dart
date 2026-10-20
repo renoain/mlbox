@@ -6,6 +6,11 @@ import 'core/app_theme.dart';
 import 'pages/splash_page.dart';
 import 'pages/home_page.dart';
 import 'pages/search_page.dart';
+import 'pages/search_results_page.dart';
+import 'pages/activity_page.dart';
+import 'pages/add_film_page.dart';
+import 'pages/featured_lists_page.dart';
+import 'pages/official_lists_page.dart';
 import 'pages/watchlist_page.dart';
 import 'pages/log_page.dart';
 import 'pages/profile_page.dart';
@@ -21,6 +26,20 @@ final appRouter = GoRouter(
     GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
     GoRoute(path: '/search', builder: (context, state) => const SearchPage()),
+    GoRoute(
+      path: '/search/results',
+      builder: (context, state) => const SearchResultsPage(),
+    ),
+    GoRoute(path: '/activity', builder: (context, state) => const ActivityPage()),
+    GoRoute(path: '/add', builder: (context, state) => const AddFilmPage()),
+    GoRoute(
+      path: '/lists/featured',
+      builder: (context, state) => const FeaturedListsPage(),
+    ),
+    GoRoute(
+      path: '/lists/official',
+      builder: (context, state) => const OfficialListsPage(),
+    ),
     GoRoute(
       path: '/watchlist',
       builder: (context, state) => const WatchlistPage(),
