@@ -1,15 +1,15 @@
 class Review {
   final int id;
+  final int movieId;
   final String userName;
-  final String userAvatar;
   final int rating;
   final String content;
   final String createdAt;
 
   Review({
     required this.id,
+    required this.movieId,
     required this.userName,
-    required this.userAvatar,
     required this.rating,
     required this.content,
     required this.createdAt,
@@ -17,13 +17,12 @@ class Review {
 
   factory Review.fromJson(Map<String, dynamic> json) {
     return Review(
-      id: json['id'],
-      userName: json['user']?['name'] ?? 'Anonymous',
-      userAvatar:
-          'https://ui-avatars.com/api/?name=${json['user']?['name'] ?? 'A'}&background=random',
-      rating: json['rating'] ?? 0,
-      content: json['content'] ?? '',
-      createdAt: json['created_at'] ?? '',
+      id: json['id'] ?? 0,
+      movieId: json['movie_id'] ?? 0,
+      userName: json['user_name']?.toString() ?? 'Anonymous',
+      rating: (json['rating'] ?? 0) as int,
+      content: json['content']?.toString() ?? '',
+      createdAt: json['updated_at']?.toString() ?? '',
     );
   }
 }

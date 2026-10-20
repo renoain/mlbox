@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 
 import '../core/api_client.dart';
 import '../models/movie.dart';
-import '../models/review.dart';
 
 class MovieRepository {
   final ApiClient _api = ApiClient();
@@ -27,17 +26,6 @@ class MovieRepository {
       throw Exception(
         e.response?.data['message'] ?? 'Gagal memuat detail film',
       );
-    }
-  }
-
-  // 3. Ambil Review Film (Jika backend mendukung)
-  Future<List<Review>> getMovieReviews(int movieId) async {
-    try {
-      final response = await _api.dio.get('/movies/$movieId/reviews');
-      final List data = response.data['data'] ?? [];
-      return data.map((json) => Review.fromJson(json)).toList();
-    } on DioException {
-      throw Exception('Gagal memuat review');
     }
   }
 }
