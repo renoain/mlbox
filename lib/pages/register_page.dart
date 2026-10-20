@@ -1,19 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
+import '../providers/auth_provider.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends ConsumerState<RegisterPage> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _submit() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      _showMessage('Semua kolom wajib diisi.');
+      return;
+    }
+    if (password.length < 8) {
+      _showMessage('Password minimal 8 karakter.');
+      return;
+    }
+
+    final ok = await ref
+        .read(authProvider.notifier)
+        .register(name, email, password);
+
+    if (!mounted) return;
+
+    if (ok) {
+      context.go('/home');
+    } else {
+      final message =
+          ref.read(authProvider).errorMessage ?? 'Registrasi gagal.';
+      _showMessage(message);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(authProvider).isLoading;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/login');
+            }
+          },
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -25,7 +86,6 @@ class RegisterPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              // --- Judul ---
               const Text(
                 'Create Account',
                 textAlign: TextAlign.center,
@@ -43,9 +103,10 @@ class RegisterPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // --- Form Nama ---
-              const TextField(
-                decoration: InputDecoration(
+              TextField(
+                controller: _nameController,
+                enabled: !isLoading,
+                decoration: const InputDecoration(
                   hintText: 'Username',
                   prefixIcon: Icon(
                     Icons.person_outline,
@@ -55,10 +116,11 @@ class RegisterPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // --- Form Email ---
-              const TextField(
+              TextField(
+                controller: _emailController,
+                enabled: !isLoading,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Email address',
                   prefixIcon: Icon(
                     Icons.email_outlined,
@@ -68,11 +130,13 @@ class RegisterPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // --- Form Password ---
-              const TextField(
+              TextField(
+                controller: _passwordController,
+                enabled: !isLoading,
                 obscureText: true,
-                decoration: InputDecoration(
-                  hintText: 'Password',
+                onSubmitted: (_) => _submit(),
+                decoration: const InputDecoration(
+                  hintText: 'Password (min. 8 karakter)',
                   prefixIcon: Icon(
                     Icons.lock_outline,
                     color: AppTheme.textSecondary,
@@ -81,13 +145,18 @@ class RegisterPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // --- Tombol Register ---
               ElevatedButton(
-                onPressed: () {
-                  // Nanti Lead yang akan menyambungkan ini ke API
-                  context.go('/home');
-                },
-                child: const Text('SIGN UP'),
+                onPressed: isLoading ? null : _submit,
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
+                      )
+                    : const Text('SIGN UP'),
               ),
             ],
           ),

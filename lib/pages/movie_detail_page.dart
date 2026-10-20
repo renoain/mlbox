@@ -142,7 +142,15 @@ class MovieDetailPage extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {},
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Watchlist belum tersedia pada tahap ini.',
+                                    ),
+                                  ),
+                                );
+                              },
                               icon: const Icon(Icons.add, size: 18),
                               label: const Text('WATCHLIST'),
                               style: ElevatedButton.styleFrom(
@@ -154,7 +162,15 @@ class MovieDetailPage extends ConsumerWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {},
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Watched belum tersedia pada tahap ini.',
+                                    ),
+                                  ),
+                                );
+                              },
                               icon: const Icon(Icons.check, size: 18),
                               label: const Text('WATCHED'),
                               style: ElevatedButton.styleFrom(

@@ -36,7 +36,7 @@ class MovieRepository {
       final response = await _api.dio.get('/movies/$movieId/reviews');
       final List data = response.data['data'] ?? [];
       return data.map((json) => Review.fromJson(json)).toList();
-    } on DioException catch (e) {
+    } on DioException {
       throw Exception('Gagal memuat review');
     }
   }
