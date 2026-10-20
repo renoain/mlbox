@@ -19,7 +19,7 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
 - Tanggal update: 2026-10-20
 - Branch aktif: `feat/review-rating-api`
 - Branch `main`: sudah berisi Tahap 1, 2, 3
-- Status: Tahap 1–7 sudah di `main`; Tahap 8 (beranda login) selesai, belum di-commit
+- Status: Tahap 1–8 sudah di `main`; Tahap 9 (settings) selesai, belum di-commit
 - Repo: mono-repo di `github.com/renoain/mlbox` (Flutter + backend Laravel), `main` up to date
 
 ---
@@ -125,6 +125,15 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
   digabung `resolve()` -> `watched_count`/`watchlist_count` hilang. Fix:
   `array_merge` eksplisit (pola sama seperti `MovieController@show`).
 - Terverifikasi: `GET /home` (auth) -> 200, 6 section, `watched_count` muncul.
+
+### Tahap 9 — Rapikan Settings
+- `settings_page.dart` -> `ConsumerWidget`; LOG OUT kini nyata
+  (`authProvider.logout()` -> `/login`), tombol hanya tampil bila login.
+- Item tanpa endpoint (Edit Profile, Change Password, Language, Theme, About,
+  Help) -> SnackBar "Fitur belum tersedia." (tidak diam-diam mati).
+- Rute `/settings` didaftarkan; ikon gear ditambahkan di `ProfilePage`
+  (`push('/settings')`).
+- Test baru: `Settings: placeholder item shows not-available message` (4/4 lolos).
 
 ---
 

@@ -9,6 +9,7 @@ import 'pages/search_page.dart';
 import 'pages/watchlist_page.dart';
 import 'pages/log_page.dart';
 import 'pages/profile_page.dart';
+import 'pages/settings_page.dart';
 import 'pages/movie_detail_page.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
@@ -26,6 +27,10 @@ final appRouter = GoRouter(
     ),
     GoRoute(path: '/log', builder: (context, state) => const LogPage()),
     GoRoute(path: '/profile', builder: (context, state) => const ProfilePage()),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsPage(),
+    ),
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
     GoRoute(
       path: '/register',

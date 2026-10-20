@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:mlbox/pages/login_page.dart';
 import 'package:mlbox/pages/register_page.dart';
+import 'package:mlbox/pages/settings_page.dart';
 import 'package:mlbox/widgets/main_bottom_nav.dart';
 
 void main() {
@@ -81,6 +82,30 @@ void main() {
 
     expect(find.text('Email dan password wajib diisi.'), findsOneWidget);
     expect(find.text('Sign in to MLBox'), findsOneWidget);
+  });
+
+  testWidgets('Settings: placeholder item shows not-available message', (
+    WidgetTester tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/settings',
+      routes: [
+        GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+        GoRoute(path: '/profile', builder: (_, _) => const _HomeStub()),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
+    await tester.pump();
+
+    expect(find.text('Settings'), findsOneWidget);
+
+    await tester.tap(find.text('Edit Profile'));
+    await tester.pump();
+
+    expect(find.text('Fitur belum tersedia.'), findsOneWidget);
   });
 }
 
