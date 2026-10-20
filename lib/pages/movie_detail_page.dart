@@ -148,35 +148,46 @@ class MovieDetailPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Tombol Tulis Review
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          if (!ref.read(authProvider).isAuthenticated) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  'Masuk dulu untuk menulis review.',
-                                ),
-                                action: SnackBarAction(
-                                  label: 'Masuk',
-                                  onPressed: () => context.push('/login'),
-                                ),
+                      // Tombol Like + Tulis Review
+                      Row(
+                        children: [
+                          _LikeButton(movie: movie),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                if (!ref.read(authProvider).isAuthenticated) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Masuk dulu untuk menulis review.',
+                                      ),
+                                      action: SnackBarAction(
+                                        label: 'Masuk',
+                                        onPressed: () => context.push('/login'),
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                // Pindah ke form review, bawa ID film
+                                context.push('/movie/${movie.id}/review');
+                              },
+                              icon: const Icon(
+                                Icons.edit,
+                                color: AppTheme.primary,
                               ),
-                            );
-                            return;
-                          }
-                          // Pindah ke form review, bawa ID film
-                          context.push('/movie/${movie.id}/review');
-                        },
-                        icon: const Icon(Icons.edit, color: AppTheme.primary),
-                        label: const Text(
-                          'TULIS REVIEW',
-                          style: TextStyle(color: AppTheme.primary),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          side: const BorderSide(color: AppTheme.primary),
-                        ),
+                              label: const Text(
+                                'TULIS REVIEW',
+                                style: TextStyle(color: AppTheme.primary),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 50),
+                                side: const BorderSide(color: AppTheme.primary),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 30),
 
@@ -486,6 +497,138 @@ class _ReviewTile extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Tombol hati untuk menandai film sebagai "disuka".
+///
+/// Statusnya di-update secara optimistik: ikon langsung berubah begitu
+/// diklik, lalu dikembalikan ke semula kalau API-nya gagal.
+class _LikeButton extends ConsumerStatefulWidget {
+  final Movie movie;
+
+  const _LikeButton({required this.movie});
+
+  @override
+  ConsumerState<_LikeButton> createState() => _LikeButtonState();
+}
+
+class _LikeButtonState extends ConsumerState<_LikeButton> {
+  late bool _isLiked;
+  late int _count;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLiked = widget.movie.isLiked;
+    _count = widget.movie.likeCount;
+  }
+
+  @override
+  void didUpdateWidget(covariant _LikeButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Selaraskan dengan data terbaru dari server, kecuali sedang ada
+    // permintaan yang sedang berjalan.
+    if (_busy) return;
+
+    if (oldWidget.movie.isLiked != widget.movie.isLiked ||
+        oldWidget.movie.likeCount != widget.movie.likeCount) {
+      setState(() {
+        _isLiked = widget.movie.isLiked;
+        _count = widget.movie.likeCount;
+      });
+    }
+  }
+
+  Future<void> _toggle() async {
+    if (_busy) return;
+
+    if (!ref.read(authProvider).isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Masuk dulu untuk menandai film sebagai suka.'),
+          action: SnackBarAction(
+            label: 'Masuk',
+            onPressed: () => context.push('/login'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Update tampilan duluan, baru kirim ke server.
+    setState(() {
+      _busy = true;
+      _isLiked = !_isLiked;
+      _count += _isLiked ? 1 : -1;
+    });
+
+    try {
+      final repo = ref.read(movieRepositoryProvider);
+      if (_isLiked) {
+        await repo.likeMovie(widget.movie.id);
+      } else {
+        await repo.unlikeMovie(widget.movie.id);
+      }
+
+      // Daftar likes ikut berubah.
+      ref.invalidate(likedMoviesProvider);
+    } catch (e) {
+      // Kembalikan ke kondisi semula.
+      setState(() {
+        _isLiked = !_isLiked;
+        _count += _isLiked ? 1 : -1;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = _isLiked ? AppTheme.error : AppTheme.textSecondary;
+
+    return InkWell(
+      onTap: _toggle,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.6)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _isLiked ? Icons.favorite : Icons.favorite_border,
+              color: color,
+              size: 22,
+            ),
+            if (_count > 0) ...[
+              const SizedBox(width: 6),
+              Text(
+                '$_count',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

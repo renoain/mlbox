@@ -20,7 +20,13 @@ class Movie {
   final int watchedCount;
   final int watchlistCount;
 
-  Movie({
+  /// Apakah user yang sedang login sudah likes film ini.
+  final bool isLiked;
+
+  /// Total jumlah like dari semua user.
+  final int likeCount;
+
+  const Movie({
     required this.id,
     required this.title,
     this.originalTitle,
@@ -39,6 +45,8 @@ class Movie {
     this.reviewCount = 0,
     this.watchedCount = 0,
     this.watchlistCount = 0,
+    this.isLiked = false,
+    this.likeCount = 0,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -73,6 +81,9 @@ class Movie {
       reviewCount: json['review_count'] ?? 0,
       watchedCount: json['watched_count'] ?? 0,
       watchlistCount: json['watchlist_count'] ?? 0,
+      // Endpoint detail film mengirim `liked` dan `like_count`.
+      isLiked: json['liked'] == true || json['is_liked'] == true,
+      likeCount: json['like_count'] ?? json['likes_count'] ?? 0,
     );
   }
 

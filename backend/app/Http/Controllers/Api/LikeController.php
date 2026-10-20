@@ -25,7 +25,12 @@ class LikeController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $items = $request->user()->likes()->latest()->get();
+        // Relasi `likeable` di-eager-load supaya data film ikut terkirim.
+        // Tanpa ini, klien harus mengambil tiap film satu per satu.
+        $items = $request->user()->likes()
+            ->with('likeable')
+            ->latest()
+            ->get();
 
         return $this->success(LikeResource::collection($items)->resolve($request));
     }

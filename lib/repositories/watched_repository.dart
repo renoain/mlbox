@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../core/api_client.dart';
 import '../models/movie.dart';
+import '../models/watched_entry.dart';
 
 class WatchedRepository {
   final ApiClient _api = ApiClient();
@@ -14,6 +15,22 @@ class WatchedRepository {
           .map((json) => json['movie'])
           .whereType<Map>()
           .map((json) => Movie.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ?? 'Gagal memuat daftar watched',
+      );
+    }
+  }
+
+  /// Daftar film yang sudah ditonton beserta tanggalnya.
+  Future<List<WatchedEntry>> getWatchedEntries() async {
+    try {
+      final response = await _api.dio.get('/watched');
+      final List data = response.data['data'] ?? [];
+      return data
+          .whereType<Map>()
+          .map((json) => WatchedEntry.fromJson(Map<String, dynamic>.from(json)))
           .toList();
     } on DioException catch (e) {
       throw Exception(

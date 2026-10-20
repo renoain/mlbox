@@ -72,7 +72,10 @@ class MovieController extends Controller
             return $this->failure('Film tidak ditemukan.', 404);
         }
 
-        $user = $request->user();
+        // Rute ini publik, jadi user dicari lewat guard sanctum: kalau
+        // pengirim menyertakan token, status like/watchlist-nya ikut terisi.
+        // Tanpa token, nilainya null (tamu).
+        $user = $request->user('sanctum');
 
         // Catatan: JsonResource::resolve() tidak menggabungkan additional() pada
         // versi Laravel ini, jadi angka agregat di-merge eksplisit di sini.
@@ -111,7 +114,10 @@ class MovieController extends Controller
             ->with([
                 'user',
                 'movie.genres',
-                'likes' => fn ($query) => $query->where('user_id', $request->user()?->id),
+                'likes' => fn ($query) => $query->where(
+                    'user_id',
+                    $request->user('sanctum')?->id,
+                ),
             ])
             ->withCount('likes')
             ->orderByDesc('rating')

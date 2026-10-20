@@ -31,6 +31,12 @@ final movieReviewsProvider = FutureProvider.family<List<Review>, int>((
   return repo.getMovieReviews(id);
 });
 
+// Daftar film yang sudah dilike user yang sedang login.
+final likedMoviesProvider = FutureProvider<List<Movie>>((ref) async {
+  final repo = ref.watch(movieRepositoryProvider);
+  return repo.getLikedMovies();
+});
+
 // Beranda terkurasi untuk user login (GET /home).
 final homeDataProvider = FutureProvider<HomeData>((ref) async {
   final repo = ref.watch(homeRepositoryProvider);

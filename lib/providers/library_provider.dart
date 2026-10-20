@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/movie.dart';
 import '../models/movie_list.dart';
 import '../models/review.dart';
+import '../models/watched_entry.dart';
 import '../repositories/diary_repository.dart';
 import '../repositories/list_repository.dart';
 import '../repositories/watched_repository.dart';
@@ -24,6 +25,12 @@ final watchlistProvider = FutureProvider<List<Movie>>((ref) async {
 final watchedProvider = FutureProvider<List<Movie>>((ref) async {
   final repo = ref.watch(watchedRepositoryProvider);
   return repo.getWatched();
+});
+
+// Daftar film yang sudah ditonton beserta tanggalnya.
+final watchedEntriesProvider = FutureProvider<List<WatchedEntry>>((ref) async {
+  final repo = ref.watch(watchedRepositoryProvider);
+  return repo.getWatchedEntries();
 });
 
 // Cek satu film ada di watchlist atau tidak.

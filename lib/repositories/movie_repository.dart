@@ -61,6 +61,51 @@ class MovieRepository {
     }
   }
 
+  // 5. Tandai film sebagai liked.
+  Future<void> likeMovie(int movieId) async {
+    try {
+      await _api.dio.post('/likes', data: _likePayload(movieId));
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal menyimpan like');
+    }
+  }
+
+  // 6. Hapus like pada sebuah film.
+  Future<void> unlikeMovie(int movieId) async {
+    try {
+      await _api.dio.delete('/likes', data: _likePayload(movieId));
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal menghapus like');
+    }
+  }
+
+  // 7. Daftar film yang sudah dilike user yang sedang login.
+  Future<List<Movie>> getLikedMovies() async {
+    try {
+      final response = await _api.dio.get('/likes');
+      final List data = response.data['data'] ?? [];
+      return data
+          .whereType<Map>()
+          .where((json) => json['likeable_type'] == _movieLikeType)
+          .map((json) => json['movie'])
+          .whereType<Map>()
+          .map((json) => Movie.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ?? 'Gagal memuat daftar like',
+      );
+    }
+  }
+
+  // Endpoint like bersifat polymorphic, jadi tipe target harus ikut dikirim.
+  // Nilainya adalah nama class model di backend.
+  static const String _movieLikeType = 'App\\Models\\Movie';
+
+  static Map<String, dynamic> _likePayload(int movieId) {
+    return {'likeable_id': movieId, 'likeable_type': _movieLikeType};
+  }
+
   /// Backend membungkus daftar film di `data`. Bentuk lain yang dibungkus
   /// (mis. `data.items`) tetap diterima supaya parsing tidak rapuh.
   static List<Movie> _parseList(dynamic body) {
