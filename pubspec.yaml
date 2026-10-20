@@ -37,3 +37,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/auth_login_hero.png
+    - assets/images/auth_register_hero.png
+    - assets/images/onboarding_1.png
+    - assets/images/onboarding_2.png
+    - assets/images/onboarding_3.png
+    - assets/images/onboarding_4.png
+    - assets/images/onboarding_5.png
+    - assets/images/onboarding_6_hero.png
+    - assets/images/user_hero.png
