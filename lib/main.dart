@@ -13,14 +13,21 @@ import 'pages/log_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/movie_detail_page.dart';
+import 'pages/onboarding_page.dart';
 import 'pages/likes_page.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/review_form_page.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/splash',
+  // Aplikasi dibuka lewat onboarding dulu. User yang sudah login otomatis
+  // dilewati oleh OnboardingPage dan langsung masuk ke /home.
+  initialLocation: '/onboarding',
   routes: [
+    GoRoute(
+      path: '/onboarding',
+      builder: (context, state) => const OnboardingPage(),
+    ),
     GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
     GoRoute(path: '/home', builder: (context, state) => const HomePage()),
     GoRoute(path: '/search', builder: (context, state) => const SearchPage()),

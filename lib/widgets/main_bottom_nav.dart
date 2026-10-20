@@ -29,6 +29,8 @@ class MainBottomNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bool isLoggedIn = ref.watch(authProvider).isAuthenticated;
+
     return Container(
       decoration: BoxDecoration(
         // Gradasi dari transparan di atas ke gelap pekat di bawah, supaya
@@ -58,55 +60,104 @@ class MainBottomNav extends ConsumerWidget {
           showSelectedLabels: false,
           showUnselectedLabels: false,
           onTap: (index) => _onTap(context, ref, index),
-          items: [
-            BottomNavigationBarItem(
-              icon: _CapsuleIcon(
-                activeIcon: Icons.home,
-                inactiveIcon: Icons.home_outlined,
-                isActive: currentIndex == 0,
-              ),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: _CapsuleIcon(
-                activeIcon: Icons.search,
-                inactiveIcon: Icons.search,
-                isActive: currentIndex == 1,
-              ),
-              label: 'Search',
-            ),
-            // Tombol tengah: warna hijau statis, lebih besar, tanpa kapsul.
-            BottomNavigationBarItem(
-              icon: const Icon(
-                Icons.add_circle,
-                color: AppTheme.primary,
-                size: 32,
-              ),
-              label: 'Review',
-            ),
-            BottomNavigationBarItem(
-              icon: _CapsuleIcon(
-                activeIcon: Icons.bolt,
-                inactiveIcon: Icons.bolt_outlined,
-                isActive: currentIndex == 3,
-              ),
-              label: 'Activity',
-            ),
-            BottomNavigationBarItem(
-              icon: _CapsuleIcon(
-                activeIcon: Icons.person,
-                inactiveIcon: Icons.person_outline,
-                isActive: currentIndex == 4,
-              ),
-              label: 'Profile',
-            ),
-          ],
+          items: isLoggedIn ? _memberItems() : _guestItems(),
         ),
       ),
     );
   }
 
+  /// Lima menu untuk user yang sudah login.
+  List<BottomNavigationBarItem> _memberItems() {
+    return [
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.home,
+          inactiveIcon: Icons.home_outlined,
+          isActive: currentIndex == 0,
+        ),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.search,
+          inactiveIcon: Icons.search,
+          isActive: currentIndex == 1,
+        ),
+        label: 'Search',
+      ),
+      // Tombol tengah: warna hijau statis, lebih besar, tanpa kapsul.
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.add_circle, color: AppTheme.primary, size: 32),
+        label: 'Review',
+      ),
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.bolt,
+          inactiveIcon: Icons.bolt_outlined,
+          isActive: currentIndex == 3,
+        ),
+        label: 'Activity',
+      ),
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.person,
+          inactiveIcon: Icons.person_outline,
+          isActive: currentIndex == 4,
+        ),
+        label: 'Profile',
+      ),
+    ];
+  }
+
+  /// Tiga menu untuk guest: Home, Search, dan Account.
+  ///
+  /// Ikon memakai komponen _CapsuleIcon yang sama, jadi tampilan kapsul
+  /// biru dan gradasinya identik dengan versi lima ikon.
+  List<BottomNavigationBarItem> _guestItems() {
+    return [
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.home,
+          inactiveIcon: Icons.home_outlined,
+          isActive: currentIndex == 0,
+        ),
+        label: 'Home',
+      ),
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.search,
+          inactiveIcon: Icons.search,
+          isActive: currentIndex == 1,
+        ),
+        label: 'Search',
+      ),
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.person,
+          inactiveIcon: Icons.person_outline,
+          isActive: currentIndex == 2,
+        ),
+        label: 'Account',
+      ),
+    ];
+  }
+
   Future<void> _onTap(BuildContext context, WidgetRef ref, int index) async {
+    final bool isLoggedIn = ref.read(authProvider).isAuthenticated;
+
+    if (!isLoggedIn) {
+      // NAVBAR GUEST (3 Ikon): Home, Search, Account
+      switch (index) {
+        case 0:
+          context.go('/home');
+        case 1:
+          context.go('/search');
+        case 2:
+          context.go('/login');
+      }
+      return;
+    }
+
     switch (index) {
       case 0:
         context.go('/home');

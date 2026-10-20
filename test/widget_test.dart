@@ -24,7 +24,7 @@ import 'package:mlbox/repositories/movie_repository.dart';
 import 'package:mlbox/widgets/main_bottom_nav.dart';
 
 void main() {
-  testWidgets('Guest: menu Profile membuka halaman login', (
+  testWidgets('Guest: navbar hanya 3 ikon dan menu Account membuka Login', (
     WidgetTester tester,
   ) async {
     final router = GoRouter(
@@ -43,14 +43,19 @@ void main() {
     );
     await tester.pump();
 
-    // Navbar selalu 5 ikon; untuk guest, menu Profile (ikon orang).
+    // Navbar guest hanya 3 ikon: Home, Search, Account.
+    // Home di index 0 jadi aktif, jadi ikonnya filled.
+    expect(find.byIcon(Icons.home), findsOneWidget);
+    expect(find.byIcon(Icons.home_outlined), findsNothing);
+    expect(find.byIcon(Icons.search), findsOneWidget);
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+
+    // Ikon member tidak muncul untuk guest.
+    expect(find.byIcon(Icons.add_circle), findsNothing);
+    expect(find.byIcon(Icons.bolt_outlined), findsNothing);
+
+    // Ketuk Account -> langsung ke halaman login.
     await tester.tap(find.byIcon(Icons.person_outline).last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Masuk untuk melihat profil'), findsOneWidget);
-
-    // Dari situ user bisa masuk.
-    await tester.tap(find.text('Masuk'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sign in to MLBox'), findsOneWidget);
@@ -424,74 +429,78 @@ void main() {
     expect(fakeRepository.savedIds, [3]);
     expect(find.text('Film favorit disimpan.'), findsOneWidget);
   });
-  testWidgets('Navbar: 5 ikon, kapsul saat aktif, ikon tengah hijau besar', (
-    WidgetTester tester,
-  ) async {
-    final router = GoRouter(
-      initialLocation: '/home',
-      routes: [
-        GoRoute(path: '/home', builder: (_, _) => const _HomeStub()),
-        GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
-      ],
-    );
+  testWidgets(
+    'Navbar: 5 ikon untuk member, kapsul saat aktif, ikon tengah hijau',
+    (WidgetTester tester) async {
+      final router = GoRouter(
+        initialLocation: '/home',
+        routes: [
+          GoRoute(path: '/home', builder: (_, _) => const _HomeStub()),
+          GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
+        ],
+      );
 
-    await tester.pumpWidget(
-      ProviderScope(child: MaterialApp.router(routerConfig: router)),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [authProvider.overrideWith((ref) => _FakeAuthNotifier())],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
 
-    // Ikon tidak aktif memakai gaya outline, ikon aktif memakai filled.
-    expect(find.byIcon(Icons.home), findsOneWidget);
-    expect(find.byIcon(Icons.home_outlined), findsNothing);
-    expect(find.byIcon(Icons.search), findsOneWidget);
-    expect(find.byIcon(Icons.add_circle), findsOneWidget);
-    expect(find.byIcon(Icons.bolt_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+      // Ikon tidak aktif memakai gaya outline, ikon aktif memakai filled.
+      expect(find.byIcon(Icons.home), findsOneWidget);
+      expect(find.byIcon(Icons.home_outlined), findsNothing);
+      expect(find.byIcon(Icons.search), findsOneWidget);
+      expect(find.byIcon(Icons.add_circle), findsOneWidget);
+      expect(find.byIcon(Icons.bolt_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.person_outline), findsOneWidget);
 
-    // Label tidak ditampilkan. (Label tetap ada di tree, jadi dicek lewat
-    // properti widget, bukan lewat find.text.)
-    final nav = tester.widget<BottomNavigationBar>(
-      find.byType(BottomNavigationBar),
-    );
-    expect(nav.showSelectedLabels, isFalse);
-    expect(nav.showUnselectedLabels, isFalse);
-    expect(nav.backgroundColor, Colors.transparent);
+      // Label tidak ditampilkan. (Label tetap ada di tree, jadi dicek lewat
+      // properti widget, bukan lewat find.text.)
+      final nav = tester.widget<BottomNavigationBar>(
+        find.byType(BottomNavigationBar),
+      );
+      expect(nav.showSelectedLabels, isFalse);
+      expect(nav.showUnselectedLabels, isFalse);
+      expect(nav.backgroundColor, Colors.transparent);
 
-    // Warna ikon: aktif biru muda, tidak aktif abu-abu.
-    expect(nav.selectedItemColor, const Color(0xFF40BCF4));
-    expect(nav.unselectedItemColor, const Color(0xFF9AB5C4));
+      // Warna ikon: aktif biru muda, tidak aktif abu-abu.
+      expect(nav.selectedItemColor, const Color(0xFF40BCF4));
+      expect(nav.unselectedItemColor, const Color(0xFF9AB5C4));
 
-    // Ikon aktif dibungkus kapsul biru gelap.
-    final capsule = tester.widget<AnimatedContainer>(
-      find
-          .ancestor(
-            of: find.byIcon(Icons.home),
-            matching: find.byType(AnimatedContainer),
-          )
-          .first,
-    );
-    final decoration = capsule.decoration! as BoxDecoration;
-    expect(decoration.color, const Color(0xFF1A3B4F));
-    expect(decoration.borderRadius, BorderRadius.circular(20));
+      // Ikon aktif dibungkus kapsul biru gelap.
+      final capsule = tester.widget<AnimatedContainer>(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.home),
+              matching: find.byType(AnimatedContainer),
+            )
+            .first,
+      );
+      final decoration = capsule.decoration! as BoxDecoration;
+      expect(decoration.color, const Color(0xFF1A3B4F));
+      expect(decoration.borderRadius, BorderRadius.circular(20));
 
-    // Ikon tengah (Quick Review) selalu hijau dan lebih besar, tanpa kapsul.
-    final quickReview = tester.widget<Icon>(find.byIcon(Icons.add_circle));
-    expect(quickReview.color, AppTheme.primary);
-    expect(quickReview.size, 32);
+      // Ikon tengah (Quick Review) selalu hijau dan lebih besar, tanpa kapsul.
+      final quickReview = tester.widget<Icon>(find.byIcon(Icons.add_circle));
+      expect(quickReview.color, AppTheme.primary);
+      expect(quickReview.size, 32);
 
-    // Navbar dibungkus gradasi + bayangan di atasnya.
-    final wrapper = tester.widget<Container>(
-      find
-          .ancestor(
-            of: find.byType(BottomNavigationBar),
-            matching: find.byType(Container),
-          )
-          .first,
-    );
-    final wrapperDecoration = wrapper.decoration! as BoxDecoration;
-    expect(wrapperDecoration.gradient, isNotNull);
-    expect(wrapperDecoration.boxShadow, isNotEmpty);
-  });
+      // Navbar dibungkus gradasi + bayangan di atasnya.
+      final wrapper = tester.widget<Container>(
+        find
+            .ancestor(
+              of: find.byType(BottomNavigationBar),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      final wrapperDecoration = wrapper.decoration! as BoxDecoration;
+      expect(wrapperDecoration.gradient, isNotNull);
+      expect(wrapperDecoration.boxShadow, isNotEmpty);
+    },
+  );
 
   testWidgets('Activity: tab Watchlist dan Diary', (WidgetTester tester) async {
     final router = GoRouter(

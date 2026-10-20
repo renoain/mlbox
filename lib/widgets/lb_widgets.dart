@@ -19,26 +19,42 @@ class LbColors {
   static const tabAccent = Color(0xFF40BCF4);
 }
 
+/// Nama aplikasi, dipakai di halaman onboarding dan profil.
+const String kAppName = 'MLBox';
+
 /// Logo tiga lingkaran (oranye, hijau, biru).
 class LbLogo extends StatelessWidget {
-  const LbLogo({super.key, this.diameter = 26});
+  const LbLogo({
+    super.key,
+    this.diameter = 26,
+    this.stepFactor = 0.88,
+    this.lensColor = const Color(0xFF171A1F),
+  });
+
   final double diameter;
+
+  /// Jarak antar lingkaran, sebagai faktor dari diameter.
+  final double stepFactor;
+
+  /// Warna area tumpang tindih antar lingkaran.
+  final Color lensColor;
 
   @override
   Widget build(BuildContext context) {
-    final step = diameter * 0.88;
+    final step = diameter * stepFactor;
     return SizedBox(
       width: diameter + step * 2,
       height: diameter,
-      child: CustomPaint(painter: _LogoPainter(diameter, step)),
+      child: CustomPaint(painter: _LogoPainter(diameter, step, lensColor)),
     );
   }
 }
 
 class _LogoPainter extends CustomPainter {
-  _LogoPainter(this.d, this.step);
+  _LogoPainter(this.d, this.step, this.lensColor);
   final double d;
   final double step;
+  final Color lensColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -54,7 +70,7 @@ class _LogoPainter extends CustomPainter {
     // Area tumpang tindih digelapkan seperti pada logo asli.
     Path circle(Offset c) =>
         Path()..addOval(Rect.fromCircle(center: c, radius: r));
-    final overlap = Paint()..color = const Color(0xFF171A1F);
+    final overlap = Paint()..color = lensColor;
     canvas.drawPath(
       Path.combine(PathOperation.intersect, circle(c1), circle(c2)),
       overlap,
@@ -67,7 +83,7 @@ class _LogoPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _LogoPainter old) =>
-      old.d != d || old.step != step;
+      old.d != d || old.step != step || old.lensColor != lensColor;
 }
 
 /// Kerangka halaman Login / Register: hero artwork, logo, judul, form putih,

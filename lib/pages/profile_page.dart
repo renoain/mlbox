@@ -21,7 +21,7 @@ class ProfilePage extends ConsumerWidget {
       return Scaffold(
         backgroundColor: LbColors.profileBg,
         body: const _GuestMessage(),
-        bottomNavigationBar: const MainBottomNav(currentIndex: 4),
+        bottomNavigationBar: const MainBottomNav(currentIndex: 2),
       );
     }
 

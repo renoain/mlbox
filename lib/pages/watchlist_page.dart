@@ -21,7 +21,7 @@ class WatchlistPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Watchlist')),
       body: isLoggedIn ? const WatchlistBody() : const _GuestMessage(),
       // Penanda menu: Watchlist = index 2 untuk user login, Users = index 0 untuk guest.
-      bottomNavigationBar: const MainBottomNav(currentIndex: 3),
+      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 3 : 2),
     );
   }
 }
