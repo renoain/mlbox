@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/movie.dart';
+import '../providers/auth_provider.dart';
 import '../providers/movie_provider.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/movie_card.dart';
@@ -32,6 +33,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final moviesAsync = ref.watch(moviesProvider);
+    // Guest: Search ada di index 2, member di index 1.
+    final bool isLoggedIn = ref.watch(authProvider).isAuthenticated;
 
     return Scaffold(
       backgroundColor: const Color(0xFF14181C),
@@ -116,7 +119,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ),
         ),
       ),
-      bottomNavigationBar: MainBottomNav(currentIndex: 1),
+      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 1 : 2),
     );
   }
 

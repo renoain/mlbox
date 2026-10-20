@@ -1,71 +1,53 @@
 import 'package:flutter/material.dart';
 
-/// Segmented tab: Films | Reviews | Lists | Journal
-class HomeTabBar extends StatelessWidget {
+import '../core/app_theme.dart';
+
+/// Tab bar transparan ala Letterboxd.
+///
+/// Tanpa kotak-kotak: background-nya transparan dan menyatu dengan header
+/// hitam. Teks tab aktif berwarna putih dengan garis bawah hijau tipis, tab
+/// tidak aktif berwarna abu-abu.
+///
+/// Karena implements [PreferredSizeWidget], bisa langsung dipakai sebagai
+/// `AppBar.bottom`:
+/// ```dart
+/// AppBar(
+///   backgroundColor: Colors.black,
+///   bottom: LbTabBar(labels: ['Films', 'Reviews']),
+/// )
+/// ```
+///
+/// Untuk tab yang bisa digeser (swipe), pasangkan dengan `TabBarView` di
+/// dalam `DefaultTabController`.
+class LbTabBar extends StatelessWidget implements PreferredSizeWidget {
   final List<String> labels;
-  final int selectedIndex;
-  final ValueChanged<int> onChanged;
 
-  const HomeTabBar({
-    super.key,
-    required this.labels,
-    required this.selectedIndex,
-    required this.onChanged,
-  });
+  const LbTabBar({super.key, required this.labels});
 
-  static const Color _container = Color(0xFF1F262E);
-  static const Color _selected = Color(0xFF445566);
-  static const Color _inactiveText = Color(0xFF94A3B8);
-  static const Color _divider = Color(0xFF3A4654);
+  /// Tinggi tab bar, dipakai `AppBar.bottom` supaya AppBar tahu alokasinya.
+  @override
+  Size get preferredSize => const Size.fromHeight(46);
 
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[];
-    for (var i = 0; i < labels.length; i++) {
-      final isSelected = i == selectedIndex;
-      children.add(
-        Expanded(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onChanged(i),
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? _selected : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                labels[i],
-                style: TextStyle(
-                  color: isSelected ? Colors.white : _inactiveText,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      if (i < labels.length - 1) {
-        final hideDivider = i == selectedIndex || i + 1 == selectedIndex;
-        children.add(
-          Container(
-            width: 1,
-            height: 14,
-            color: hideDivider ? Colors.transparent : _divider,
-          ),
-        );
-      }
-    }
-
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: _container,
-        borderRadius: BorderRadius.circular(8),
+    return TabBar(
+      isScrollable: false,
+      // Garis hijau tipis, selebar teks tab.
+      indicatorColor: AppTheme.primary,
+      indicatorWeight: 2.5,
+      indicatorSize: TabBarIndicatorSize.label,
+      labelColor: Colors.white,
+      unselectedLabelColor: AppTheme.textSecondary,
+      labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
       ),
-      child: Row(children: children),
+      // Hilangkan garis pemisah bawaan Material 3.
+      dividerColor: Colors.transparent,
+      splashBorderRadius: BorderRadius.zero,
+      overlayColor: WidgetStateProperty.all(Colors.transparent),
+      tabs: [for (final String label in labels) Tab(text: label)],
     );
   }
 }

@@ -22,7 +22,7 @@ class LogPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Log')),
       body: isLoggedIn ? const LogBody() : const _GuestMessage(),
       // Penanda menu: Log = index 3 untuk user login, Users = index 0 untuk guest.
-      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 3 : 2),
+      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 3 : 0),
     );
   }
 }

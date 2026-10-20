@@ -43,19 +43,21 @@ void main() {
     );
     await tester.pump();
 
-    // Navbar guest hanya 3 ikon: Home, Search, Account.
-    // Home di index 0 jadi aktif, jadi ikonnya filled.
-    expect(find.byIcon(Icons.home), findsOneWidget);
-    expect(find.byIcon(Icons.home_outlined), findsNothing);
+    // Navbar guest hanya 3 ikon: Login, Library, Search.
+    // Login di index 0 jadi aktif, jadi ikonnya filled.
+    expect(find.byIcon(Icons.people), findsOneWidget);
+    expect(find.byIcon(Icons.people_outline), findsNothing);
+    // Library di index 1, belum aktif, jadi ikonnya outline.
+    expect(find.byIcon(Icons.video_library_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.video_library), findsNothing);
     expect(find.byIcon(Icons.search), findsOneWidget);
-    expect(find.byIcon(Icons.person_outline), findsOneWidget);
 
     // Ikon member tidak muncul untuk guest.
     expect(find.byIcon(Icons.add_circle), findsNothing);
     expect(find.byIcon(Icons.bolt_outlined), findsNothing);
 
-    // Ketuk Account -> langsung ke halaman login.
-    await tester.tap(find.byIcon(Icons.person_outline).last);
+    // Ketuk Login -> langsung ke halaman login.
+    await tester.tap(find.byIcon(Icons.people).last);
     await tester.pumpAndSettle();
 
     expect(find.text('Sign in to MLBox'), findsOneWidget);
@@ -266,12 +268,15 @@ void main() {
     expect(find.textContaining('Joined'), findsOneWidget);
     expect(find.text('FAVOURITE FILMS'), findsOneWidget);
 
+    // Empat tab di atas profil. ("Profile" juga dipakai label navbar, jadi
+    // yang ini dicek dengan findsWidgets.)
+    expect(find.text('Profile'), findsWidgets);
+    expect(find.text('Diary'), findsOneWidget);
+    expect(find.text('Lists'), findsOneWidget);
+    expect(find.text('Watchlist'), findsOneWidget);
+
     // Angka statistik dari API (barisnya di bawah, harus digulir dulu).
-    await tester.scrollUntilVisible(
-      find.text('Films'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await _scrollProfileTab(tester);
     expect(find.text('Films'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
     expect(find.text('Reviews'), findsOneWidget);
@@ -305,34 +310,33 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Baris statistik baru ter-build setelah digulir.
-    await tester.scrollUntilVisible(
-      find.text('Films'),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
+    // Baris statistik ada di tab "Profile" dan letaknya di bawah lipatan,
+    // jadi daftar harus digulir dulu.
+    await _scrollProfileTab(tester);
 
-    // Hanya 3 baris yang punya halaman: Films, Diary, Watchlist.
+    // Baris yang punya halaman: Films, Diary, Watchlist, Likes.
     expect(find.byIcon(Icons.chevron_right), findsNWidgets(4));
 
     // Films -> halaman Films.
-    await tester.tap(find.text('Films'));
+    // ignore: avoid_print
+    await tester.tap(_inProfileList('Films'));
     await tester.pumpAndSettle();
+    // ignore: avoid_print
     expect(find.text('Watched Stub'), findsOneWidget);
 
     // Diary -> halaman Log.
     router.go('/profile');
     await tester.pumpAndSettle();
-    await _scrollTo(tester, 'Diary');
-    await tester.tap(find.text('Diary'));
+    await _scrollProfileTab(tester);
+    await tester.tap(_inProfileList('Diary'));
     await tester.pumpAndSettle();
     expect(find.text('Log Stub'), findsOneWidget);
 
     // Watchlist -> halaman Watchlist.
     router.go('/profile');
     await tester.pumpAndSettle();
-    await _scrollTo(tester, 'Watchlist');
-    await tester.tap(find.text('Watchlist'));
+    await _scrollProfileTab(tester);
+    await tester.tap(_inProfileList('Watchlist'));
     await tester.pumpAndSettle();
     expect(find.text('Watchlist Stub'), findsOneWidget);
   });
@@ -677,21 +681,37 @@ class _FakeMovieRepository extends MovieRepository {
   }
 }
 
-/// Scroll sampai sebuah teks benar-benar terlihat dan bisa diklik.
+/// Scroll tab "Profile" sampai baris statistiknya terlihat.
 ///
-/// `scrollUntilVisible` saja tidak cukup: item bisa berhenti persis di tepi
-/// bawah ListView, sehingga posisinya jatuh di balik bottom navigation bar
-/// dan tap-nya mendarat di navbar.
-Future<void> _scrollTo(WidgetTester tester, String label) async {
-  await tester.scrollUntilVisible(
-    find.text(label),
-    250,
-    scrollable: find.byType(Scrollable).first,
-  );
-  await tester.ensureVisible(find.text(label));
+/// Baris-baris itu ada di dalam ListView tab pertama, jadi tidak bisa
+/// pakai scrollUntilVisible (elemennya belum ter-build saat dicari).
+Future<void> _scrollProfileTab(WidgetTester tester) async {
+  final listView = find.byType(ListView).first;
+
+  // Satu kali drag supaya baris statistiknya ter-build.
+  await tester.drag(listView, const Offset(0, -300));
+  await tester.pumpAndSettle();
+
+  // Baris pertama statistik jadi jangkar, supaya baris di bawahnya
+  // benar-benar ada di dalam layar dan bisa diklik.
+  await tester.ensureVisible(_inProfileList('Activity'));
   await tester.pumpAndSettle();
 }
 
+/// Teks di dalam daftar profil (bukan label tab atau label navbar).
+///
+/// Nama seperti "Diary", "Lists", dan "Watchlist" dipakai baris statistik
+/// sekaligus tab, jadi finder-nya dibatasi ke ListView profil.
+Finder _inProfileList(String text) {
+  return find.descendant(
+    of: find.byType(ListView).first,
+    matching: find.text(text),
+  );
+}
+
+/// Scroll sampai sebuah teks benar-benar terlihat dan bisa diklik.///
+/// `scrollUntilVisible` saja tidak cukup: item bisa berhenti persis di tepi
+/// bawah ListView, sehingga posisinya jatuh di balik bottom navigation bar
 /// Stub untuk halaman yang dipakai sebagai tujuan navigasi di test.
 class _WatchedStub extends StatelessWidget {
   const _WatchedStub();

@@ -36,7 +36,7 @@ class ActivityPage extends ConsumerWidget {
             ? const TabBarView(children: [WatchlistBody(), LogBody()])
             : const _GuestMessage(),
         // Penanda menu: Activity = index 3.
-        bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 3 : 2),
+        bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 3 : 0),
       ),
     );
   }

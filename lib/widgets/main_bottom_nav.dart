@@ -117,27 +117,27 @@ class MainBottomNav extends ConsumerWidget {
     return [
       BottomNavigationBarItem(
         icon: _CapsuleIcon(
-          activeIcon: Icons.home,
-          inactiveIcon: Icons.home_outlined,
+          activeIcon: Icons.people,
+          inactiveIcon: Icons.people_outline,
           isActive: currentIndex == 0,
         ),
-        label: 'Home',
+        label: 'Login',
+      ),
+      BottomNavigationBarItem(
+        icon: _CapsuleIcon(
+          activeIcon: Icons.video_library,
+          inactiveIcon: Icons.video_library_outlined,
+          isActive: currentIndex == 1,
+        ),
+        label: 'Library',
       ),
       BottomNavigationBarItem(
         icon: _CapsuleIcon(
           activeIcon: Icons.search,
           inactiveIcon: Icons.search,
-          isActive: currentIndex == 1,
-        ),
-        label: 'Search',
-      ),
-      BottomNavigationBarItem(
-        icon: _CapsuleIcon(
-          activeIcon: Icons.person,
-          inactiveIcon: Icons.person_outline,
           isActive: currentIndex == 2,
         ),
-        label: 'Account',
+        label: 'Search',
       ),
     ];
   }
@@ -146,14 +146,14 @@ class MainBottomNav extends ConsumerWidget {
     final bool isLoggedIn = ref.read(authProvider).isAuthenticated;
 
     if (!isLoggedIn) {
-      // NAVBAR GUEST (3 Ikon): Home, Search, Account
+      // NAVBAR GUEST (3 Ikon): Login, Library, Search
       switch (index) {
         case 0:
-          context.go('/home');
-        case 1:
-          context.go('/search');
-        case 2:
           context.go('/login');
+        case 1:
+          context.go('/home');
+        case 2:
+          context.go('/search');
       }
       return;
     }

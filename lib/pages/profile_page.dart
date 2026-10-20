@@ -4,10 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import '../models/profile_stats.dart';
 import '../providers/auth_provider.dart';
+import '../providers/library_provider.dart';
 import '../providers/profile_provider.dart';
+import '../widgets/diary_list.dart';
 import '../widgets/favorite_posters_section.dart';
+import '../widgets/home_tab_bar.dart';
+import '../widgets/lists_tab.dart';
 import '../widgets/lb_widgets.dart';
 import '../widgets/main_bottom_nav.dart';
+import '../widgets/poster_tile.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -21,61 +26,96 @@ class ProfilePage extends ConsumerWidget {
       return Scaffold(
         backgroundColor: LbColors.profileBg,
         body: const _GuestMessage(),
-        bottomNavigationBar: const MainBottomNav(currentIndex: 2),
+        bottomNavigationBar: const MainBottomNav(currentIndex: 0),
       );
     }
 
-    final statsAsync = ref.watch(profileStatsProvider);
-
-    return Scaffold(
-      backgroundColor: LbColors.profileBg,
-      body: Column(
-        children: [
-          _Header(
-            username: user.name,
-            onSettings: () => context.push('/settings'),
-          ),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                const SizedBox(height: 22),
-                Center(child: _Avatar(name: user.name)),
-                const SizedBox(height: 10),
-                if (user.createdAt != null)
-                  Center(
-                    child: Text(
-                      'Joined ${_formatDate(user.createdAt!)}',
-                      style: const TextStyle(
-                        color: LbColors.muted,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 14),
-                const _SectionHeader('FAVOURITE FILMS'),
-                const FavoritePostersSection(),
-                const SizedBox(height: 8),
-                statsAsync.when(
-                  loading: () => const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: CircularProgressIndicator(color: LbColors.green),
-                    ),
-                  ),
-                  error: (error, stackTrace) => _StatsError(
-                    message: error.toString().replaceFirst('Exception: ', ''),
-                    onRetry: () => ref.invalidate(profileStatsProvider),
-                  ),
-                  data: (stats) => _StatsRows(stats: stats),
-                ),
-                const SizedBox(height: 24),
-              ],
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        backgroundColor: LbColors.profileBg,
+        appBar: AppBar(
+          // Header hitam, tab menyatu dengan AppBar (tanpa kotak).
+          backgroundColor: LbColors.appBarBlack,
+          surfaceTintColor: LbColors.appBarBlack,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Text(
+            user.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ],
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.settings_outlined,
+                color: LbColors.rowLabel,
+              ),
+              tooltip: 'Settings',
+              onPressed: () => context.push('/settings'),
+            ),
+          ],
+          bottom: const LbTabBar(
+            labels: ['Profile', 'Diary', 'Lists', 'Watchlist'],
+          ),
+        ),
+        // TabBarView supaya tab bisa digeser (swipe).
+        body: const TabBarView(
+          children: [_ProfileTab(), _DiaryTab(), _ListsTab(), _WatchlistTab()],
+        ),
+        bottomNavigationBar: const MainBottomNav(currentIndex: 4),
       ),
-      bottomNavigationBar: const MainBottomNav(currentIndex: 4),
+    );
+  }
+}
+
+/// Tab "Profile": avatar, film favorit, dan statistik.
+class _ProfileTab extends ConsumerWidget {
+  const _ProfileTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final user = auth.user;
+    final statsAsync = ref.watch(profileStatsProvider);
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        const SizedBox(height: 22),
+        Center(child: _Avatar(name: user?.name ?? '')),
+        const SizedBox(height: 10),
+        if (user?.createdAt != null)
+          Center(
+            child: Text(
+              'Joined ${_formatDate(user!.createdAt!)}',
+              style: const TextStyle(color: LbColors.muted, fontSize: 13),
+            ),
+          ),
+        const SizedBox(height: 14),
+        const _SectionHeader('FAVOURITE FILMS'),
+        const FavoritePostersSection(),
+        const SizedBox(height: 8),
+        statsAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: CircularProgressIndicator(color: LbColors.green),
+            ),
+          ),
+          error: (error, stackTrace) => _StatsError(
+            message: error.toString().replaceFirst('Exception: ', ''),
+            onRetry: () => ref.invalidate(profileStatsProvider),
+          ),
+          data: (stats) => _StatsRows(stats: stats),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
@@ -99,47 +139,162 @@ class ProfilePage extends ConsumerWidget {
   }
 }
 
-/// Header: ikon setelan di kiri, username di tengah, ikon lain di kanan.
-class _Header extends StatelessWidget {
-  final String username;
-  final VoidCallback onSettings;
-
-  const _Header({required this.username, required this.onSettings});
+/// Tab "Diary": daftar film yang dicatat, dikelompokkan per bulan.
+class _DiaryTab extends ConsumerWidget {
+  const _DiaryTab();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: LbColors.appBarBlack,
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-      child: SizedBox(
-        height: 48,
-        child: Row(
-          children: [
-            IconButton(
-              icon: const Icon(
-                Icons.settings_outlined,
-                color: LbColors.rowLabel,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final diaryAsync = ref.watch(diaryProvider);
+
+    return diaryAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: LbColors.green)),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_rounded,
+                color: Colors.white54,
+                size: 48,
               ),
-              onPressed: onSettings,
-            ),
-            Expanded(
-              child: Text(
-                username,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+              const SizedBox(height: 16),
+              const Text(
+                'Gagal memuat log',
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            // Spacer seukuran tombolnya supaya username tetap terpusat.
-            const SizedBox(width: 48),
-          ],
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(diaryProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: LbColors.green,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(160, 50),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+      data: (days) => DiaryList(days: days),
+    );
+  }
+}
+
+/// Tab "Lists": kurasi film milik user.
+class _ListsTab extends ConsumerWidget {
+  const _ListsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const ListsTab();
+  }
+}
+
+/// Tab "Watchlist": film yang disimpan untuk ditonton nanti.
+class _WatchlistTab extends ConsumerWidget {
+  const _WatchlistTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final watchlistAsync = ref.watch(watchlistProvider);
+
+    return watchlistAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: LbColors.green)),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_rounded,
+                color: Colors.white54,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Gagal memuat watchlist',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(watchlistProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: LbColors.green,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(160, 50),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (movies) {
+        if (movies.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bookmark_border, color: Colors.white38, size: 52),
+                  SizedBox(height: 16),
+                  Text(
+                    'Watchlist masih kosong',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Tambahkan film dari halaman detail film.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white60, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 2 / 3,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: movies.length,
+          itemBuilder: (context, index) {
+            final movie = movies[index];
+            return PosterTile(
+              title: movie.title,
+              posterUrl: movie.posterUrl,
+              onTap: () => context.push('/movie/${movie.id}'),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -4,90 +4,69 @@ import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
 import '../models/movie.dart';
-import '../models/movie_list.dart';
 import '../models/review.dart';
 import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
 
 import '../widgets/home_tab_bar.dart';
+import '../widgets/lists_tab.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/poster_image.dart';
 import '../widgets/poster_tile.dart';
 import '../widgets/rating_stars.dart';
 
-class HomePage extends ConsumerStatefulWidget {
+class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
-  ConsumerState<HomePage> createState() => _HomePageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Guest: Library ada di index 1, member di index 0.
+    final bool isLoggedIn = ref.watch(authProvider).isAuthenticated;
 
-class _HomePageState extends ConsumerState<HomePage> {
-  static const Color _bg = AppTheme.background;
-
-  static const List<String> _tabs = ['Films', 'Reviews', 'Lists', 'Journal'];
-
-  int _tabIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bg,
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            color: Colors.black,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-                child: Column(
-                  children: [
-                    const Text(
-                      'MLBox',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    HomeTabBar(
-                      labels: _tabs,
-                      selectedIndex: _tabIndex,
-                      onChanged: (index) {
-                        setState(() => _tabIndex = index);
-                      },
-                    ),
-                  ],
-                ),
-              ),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          // Header hitam, tab menyatu dengan AppBar (tanpa kotak).
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            'MLBox',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
             ),
           ),
-          Expanded(child: _buildTab(ref)),
-        ],
+          bottom: const LbTabBar(
+            labels: ['Films', 'Reviews', 'Lists', 'Journal'],
+          ),
+        ),
+        // TabBarView supaya tab bisa digeser (swipe).
+        body: const TabBarView(
+          children: [_FilmsTab(), _ReviewsTab(), _ListsTab(), _JournalTab()],
+        ),
+        bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 0 : 1),
       ),
-      bottomNavigationBar: MainBottomNav(currentIndex: 0),
     );
   }
+}
 
-  Widget _buildTab(WidgetRef ref) {
-    switch (_tabIndex) {
-      case 0:
-        return _buildFilmsTab(ref.watch(moviesProvider));
-      case 1:
-        return const _ReviewsTab();
-      case 2:
-        return const _ListsTab();
-      default:
-        return const _JournalTab();
-    }
+/// Tab "Films": grid katalog film.
+class _FilmsTab extends ConsumerWidget {
+  const _FilmsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _buildFilmsTab(ref, ref.watch(moviesProvider));
   }
 
-  Widget _buildFilmsTab(AsyncValue<List<Movie>> moviesAsync) {
+  Widget _buildFilmsTab(WidgetRef ref, AsyncValue<List<Movie>> moviesAsync) {
     return moviesAsync.when(
       loading: () => const Center(
         child: CircularProgressIndicator(color: Color(0xFF00E054)),
@@ -136,7 +115,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       data: (movies) {
         if (movies.isEmpty) {
-          return _buildEmptyState();
+          return _buildEmptyState(ref);
         }
 
         return _buildMovieGrid(movies);
@@ -184,7 +163,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(WidgetRef ref) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -286,33 +265,7 @@ class _ListsTab extends ConsumerWidget {
       );
     }
 
-    final listsAsync = ref.watch(listsProvider);
-
-    return listsAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: AppTheme.primary),
-      ),
-      error: (error, stackTrace) => _ErrorState(
-        message: 'Gagal memuat daftar',
-        detail: error.toString().replaceFirst('Exception: ', ''),
-        onRetry: () => ref.invalidate(listsProvider),
-      ),
-      data: (lists) {
-        if (lists.isEmpty) {
-          return const _EmptyState(
-            icon: Icons.list_alt_outlined,
-            title: 'Belum ada daftar',
-            message: 'Kurasi film favoritmu jadi daftar sendiri.',
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-          itemCount: lists.length,
-          itemBuilder: (context, index) => _ListCard(list: lists[index]),
-        );
-      },
-    );
+    return const ListsTab();
   }
 }
 
@@ -412,83 +365,6 @@ class _ReviewCard extends StatelessWidget {
 }
 
 /// Satu kartu kurasi: judul, deskripsi, dan jumlah film.
-class _ListCard extends StatelessWidget {
-  final MovieList list;
-
-  const _ListCard({required this.list});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white12, width: 1),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              Icons.list_alt_rounded,
-              color: AppTheme.primary,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  list.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${list.itemCount} film'
-                  '${list.isPublic ? ' • Publik' : ' • Privat'}',
-                  style: const TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-                if (list.description != null &&
-                    list.description!.trim().isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    list.description!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white60,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Empty state generik untuk tab yang datanya kosong.
 class _EmptyState extends StatelessWidget {
   final IconData icon;
