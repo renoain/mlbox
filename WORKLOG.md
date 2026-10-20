@@ -19,7 +19,7 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
 - Tanggal update: 2026-10-20
 - Branch aktif: `feat/review-rating-api`
 - Branch `main`: sudah berisi Tahap 1, 2, 3
-- Status: Tahap 1–4 selesai & tervalidasi (Tahap 4 belum di-merge ke main)
+- Status: Tahap 1–4 sudah di `main`; Tahap 5 (rating di detail) selesai, belum di-commit
 
 ---
 
@@ -71,6 +71,27 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
 - Hapus method usang `MovieRepository.getMovieReviews` + `movieReviewsProvider`
   (menargetkan `GET /movies/{id}/reviews` yang **tidak ada** di backend = bug laten).
 - Tombol "TULIS REVIEW" di Detail Film kini guard guest -> SnackBar + "Masuk".
+
+### Tahap 5 — Rating Bintang di Detail Film (API)
+- `movie_repository.dart`: `rateMovie(id, rating)` -> `POST /movies/{id}/rate`,
+  `unrateMovie(id)` -> `DELETE /movies/{id}/rate`.
+- `movie.dart`: tambah `averageRating` (`average_rating`) & `reviewCount`
+  (`review_count`); perbaiki parsing `genres` (list objek -> nama).
+- `movie_detail_page.dart`: section RATINGS kini menampilkan rata-rata komunitas
+  + jumlah review, plus baris "Rating kamu" (bintang interaktif, guard guest).
+
+### Perbaikan Backend (bug nyata, ditemukan saat uji)
+- `MovieStatsService::getAverageRating` -> `round()` menerima string dari
+  `avg()` SQLite -> **TypeError 500** saat film punya rating. Fix: cast ke
+  `(float)` dulu (pola sama seperti `ratingMap()`).
+- `MovieController::show` -> `additional()` **tidak** digabung oleh
+  `JsonResource::resolve()` di Laravel 13 ini, sehingga `average_rating`,
+  `review_count`, `in_watchlist`, dll. hilang dari respons. Fix: `array_merge`
+  eksplisit.
+- Diverifikasi: `GET /movies/{id}` kini `200` + mengembalikan `average_rating`,
+  `review_count`, dan field per-user.
+- Catatan: `backend/` adalah **git repo terpisah** (bukan submodule); commit di
+  dalamnya (`de0987a`), parent mencatat gitlink.
 
 ---
 
@@ -144,7 +165,7 @@ Belum dipakai (kandidat berikutnya):
 
 ## Langkah Selanjutnya (TODO)
 
-1. Merge `feat/review-rating-api` (Tahap 4) ke `main`.
+1. Merge Tahap 5 (rating di detail) + fix backend ke `main`.
 2. Tampilkan daftar review di Detail Film — butuh endpoint publik review per film
    (backend belum punya; perlu `GET /movies/{id}/reviews` bila diinginkan).
 3. Sambungkan `GET /home` bila ingin beranda khusus user login.
@@ -155,6 +176,8 @@ Belum dipakai (kandidat berikutnya):
 > Catatan backend: `ReviewResource.user_name` hanya terisi bila relasi `user`
 > di-eager-load. `ReviewController@index`/`store` belum memuatnya, jadi nama
 > user tampil kosong (fallback `Anonymous` di app).
+> `GET /movies/{id}` tidak mengembalikan rating milik user yang login, jadi
+> bintang "Rating kamu" di app mulai dari 0 (tidak ter-preselect).
 
 ---
 

@@ -28,4 +28,26 @@ class MovieRepository {
       );
     }
   }
+
+  // 3. Beri / ubah rating bintang pada sebuah film.
+  Future<int> rateMovie(int movieId, int rating) async {
+    try {
+      final response = await _api.dio.post(
+        '/movies/$movieId/rate',
+        data: {'rating': rating},
+      );
+      return response.data['data']['rating'] ?? rating;
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal menyimpan rating');
+    }
+  }
+
+  // 4. Hapus rating bintang pada sebuah film.
+  Future<void> unrateMovie(int movieId) async {
+    try {
+      await _api.dio.delete('/movies/$movieId/rate');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal menghapus rating');
+    }
+  }
 }

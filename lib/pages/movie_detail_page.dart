@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
+import '../models/movie.dart';
 import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
@@ -122,21 +123,7 @@ class MovieDetailPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Rating Section
-                      Row(
-                        children: [
-                          const Text(
-                            'RATINGS',
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          const RatingStars(rating: 4),
-                        ],
-                      ),
+                      _RatingSection(movie: movie),
                       const SizedBox(height: 20),
 
                       // Tombol Watchlist & Watched
@@ -356,6 +343,138 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
               minimumSize: const Size(0, 50),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RatingSection extends ConsumerStatefulWidget {
+  final Movie movie;
+
+  const _RatingSection({required this.movie});
+
+  @override
+  ConsumerState<_RatingSection> createState() => _RatingSectionState();
+}
+
+class _RatingSectionState extends ConsumerState<_RatingSection> {
+  int _myRating = 0;
+  bool _busy = false;
+
+  bool get _isLoggedIn => ref.read(authProvider).isAuthenticated;
+
+  void _requireLogin() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Masuk dulu untuk memberi rating.'),
+        action: SnackBarAction(
+          label: 'Masuk',
+          onPressed: () => context.push('/login'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _rate(int value) async {
+    if (!_isLoggedIn) {
+      _requireLogin();
+      return;
+    }
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final repo = ref.read(movieRepositoryProvider);
+      final saved = await repo.rateMovie(widget.movie.id, value);
+      ref.invalidate(movieDetailProvider(widget.movie.id));
+      if (mounted) {
+        setState(() => _myRating = saved);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Rating $saved bintang disimpan.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final average = widget.movie.averageRating ?? 0;
+    final count = widget.movie.reviewCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'RATINGS',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(width: 16),
+            if (count > 0 || average > 0) ...[
+              Text(
+                average.toStringAsFixed(1),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              RatingStars(rating: average.round(), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                '($count)',
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ] else
+              const Text(
+                'Belum ada rating',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Text(
+              'Rating kamu',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(width: 12),
+            if (_busy)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppTheme.primary,
+                ),
+              )
+            else
+              RatingStars(
+                rating: _myRating,
+                size: 28,
+                isInteractive: true,
+                onRatingChanged: _rate,
+              ),
+          ],
         ),
       ],
     );

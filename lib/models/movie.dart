@@ -6,6 +6,8 @@ class Movie {
   final String? releaseDate;
   final int? runtime;
   final String? genres;
+  final double? averageRating;
+  final int reviewCount;
 
   Movie({
     required this.id,
@@ -15,6 +17,8 @@ class Movie {
     this.releaseDate,
     this.runtime,
     this.genres,
+    this.averageRating,
+    this.reviewCount = 0,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -26,8 +30,13 @@ class Movie {
       releaseDate: json['release_date'],
       runtime: json['runtime'],
       genres: json['genres'] is List
-          ? (json['genres'] as List).join(', ')
+          ? (json['genres'] as List)
+                .map((g) => g is Map ? g['name'] : g)
+                .where((g) => g != null)
+                .join(', ')
           : json['genres']?.toString(),
+      averageRating: (json['average_rating'] as num?)?.toDouble(),
+      reviewCount: json['review_count'] ?? 0,
     );
   }
 
