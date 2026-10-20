@@ -6,6 +6,8 @@ class ProfileStats {
   final int totalReviews;
   final int totalLists;
   final int totalLikes;
+  final int totalTags;
+  final int totalFavorites;
   final int totalFollowers;
   final int totalFollowing;
   final double averageRating;
@@ -17,6 +19,8 @@ class ProfileStats {
     this.totalReviews = 0,
     this.totalLists = 0,
     this.totalLikes = 0,
+    this.totalTags = 0,
+    this.totalFavorites = 0,
     this.totalFollowers = 0,
     this.totalFollowing = 0,
     this.averageRating = 0,
@@ -30,6 +34,8 @@ class ProfileStats {
       totalReviews: json['total_reviews'] ?? 0,
       totalLists: json['total_lists'] ?? 0,
       totalLikes: json['total_likes'] ?? 0,
+      totalTags: json['total_tags'] ?? 0,
+      totalFavorites: json['total_favorites'] ?? 0,
       totalFollowers: json['total_followers'] ?? 0,
       totalFollowing: json['total_following'] ?? 0,
       averageRating: (json['average_rating'] as num?)?.toDouble() ?? 0,

@@ -17,7 +17,9 @@ class UpdateFavoritesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'items' => ['required', 'array', 'max:4'],
+            // `present` (bukan `required`) supaya daftar kosong tetap boleh
+            // dikirim, supaya semua film favorit bisa dihapus.
+            'items' => ['present', 'array', 'max:4'],
             'items.*.position' => ['required', 'integer', 'min:1', 'max:4', 'distinct'],
             'items.*.movie_id' => ['required', 'integer', 'exists:movies,id', 'distinct'],
         ];

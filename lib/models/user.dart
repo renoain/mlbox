@@ -4,11 +4,14 @@ class User {
   final String email;
   final String role;
 
+  /// Tanggal akun dibuat, dipakai untuk menampilkan tanggal bergabung.
+  final DateTime? createdAt;
   User({
     required this.id,
     required this.name,
     required this.email,
     required this.role,
+    this.createdAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -17,6 +20,7 @@ class User {
       name: json['name'] ?? 'User',
       email: json['email'] ?? '',
       role: json['role'] ?? 'user',
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
     );
   }
 }

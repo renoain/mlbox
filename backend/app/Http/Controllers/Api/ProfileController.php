@@ -30,6 +30,8 @@ class ProfileController extends Controller
             'average_rating' => round((float) ($user->reviews()->avg('rating') ?? 0), 1),
             'total_likes' => $user->likes()->count(),
             'total_lists' => $user->lists()->count(),
+            'total_tags' => $user->tags()->count(),
+            'total_favorites' => $user->favorites()->count(),
             'total_followers' => $user->followers()->count(),
             'total_following' => $user->following()->count(),
         ]);
