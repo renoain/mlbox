@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/home_tab_bar.dart';
 import '../widgets/main_bottom_nav.dart';
 import 'log_page.dart';
 import 'watchlist_page.dart';
@@ -21,16 +22,20 @@ class ActivityPage extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('Activity'),
-          bottom: const TabBar(
-            indicatorColor: AppTheme.primary,
-            labelColor: AppTheme.primary,
-            unselectedLabelColor: AppTheme.textSecondary,
-            tabs: [
-              Tab(text: 'Watchlist'),
-              Tab(text: 'Diary'),
-            ],
+          // Header hitam, tab menyatu dengan AppBar (tanpa kotak).
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: const Text(
+            'Activity',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
+          bottom: const LbTabBar(labels: ['Watchlist', 'Diary']),
         ),
         body: isLoggedIn
             ? const TabBarView(children: [WatchlistBody(), LogBody()])

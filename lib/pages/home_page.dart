@@ -275,10 +275,66 @@ class _JournalTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _EmptyState(
-      icon: Icons.auto_stories_outlined,
-      title: 'Editorial Journal coming soon',
-      message: 'Cerita dan recommendation tentang film akan hadir di sini.',
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Ikon buku di dalam lingkaran, biar tidak terlihat kosong.
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.surface,
+                border: Border.all(
+                  color: AppTheme.primary.withValues(alpha: 0.45),
+                  width: 1.5,
+                ),
+              ),
+              child: const Icon(
+                Icons.auto_stories_outlined,
+                color: AppTheme.primary,
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 22),
+            const Text(
+              'Editorial Journal',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Editorial Journal will be available soon',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Cerita, retrospeksi, dan rekomendasi film pilihan',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

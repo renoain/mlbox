@@ -8,6 +8,7 @@ import '../models/review.dart';
 import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
+import '../widgets/lists_tab.dart';
 import '../widgets/poster_image.dart';
 import '../widgets/rating_stars.dart';
 
@@ -799,18 +800,268 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
           ],
         ),
         const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _busy ? null : _logFilm,
-          icon: const Icon(Icons.calendar_today, size: 18),
-          label: const Text('LOG FILM'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: const BorderSide(color: Colors.white24),
-            minimumSize: const Size(double.infinity, 50),
-          ),
+        // "Log Film" dan "Tambah ke List" sebaris, supaya tinggi halaman
+        // tidak bertambah dan tombol Tulis Review tetap kelihatan.
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : _logFilm,
+                icon: const Icon(Icons.calendar_today, size: 18),
+                label: const Text('LOG FILM'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white24),
+                  minimumSize: const Size(0, 50),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _busy ? null : () => _openAddToList(context, ref),
+                icon: const Icon(Icons.playlist_add, size: 18),
+                label: const Text(
+                  'Tambah ke List',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white24),
+                  minimumSize: const Size(0, 50),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
+  }
+
+  /// Buka sheet untuk memilih list tujuan film ini.
+  Future<void> _openAddToList(BuildContext context, WidgetRef ref) async {
+    if (!ref.read(authProvider).isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Masuk dulu untuk menambah film ke list.'),
+          action: SnackBarAction(
+            label: 'Masuk',
+            onPressed: () => context.push('/login'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+      builder: (sheetContext) => _AddToListSheet(movieId: widget.movieId),
+    );
+  }
+}
+
+/// Bottom sheet untuk menambahkan film ke salah satu list milik user.
+class _AddToListSheet extends ConsumerWidget {
+  final int movieId;
+
+  const _AddToListSheet({required this.movieId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final listsAsync = ref.watch(listsProvider);
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Gagang
+          Container(
+            margin: const EdgeInsets.only(top: 10, bottom: 4),
+            width: 38,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: Text(
+              'Tambah ke List',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Flexible(
+            child: listsAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                ),
+              ),
+              error: (error, stackTrace) => Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.cloud_off_rounded,
+                      color: Colors.white54,
+                      size: 40,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      error.toString().replaceFirst('Exception: ', ''),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => ref.invalidate(listsProvider),
+                      child: const Text('Coba lagi'),
+                    ),
+                  ],
+                ),
+              ),
+              data: (lists) {
+                if (lists.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.list_alt_outlined,
+                          color: Colors.white38,
+                          size: 44,
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Belum ada list',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Buat list dulu, baru tambahkan film ke dalamnya.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () => showCreateListDialog(context, ref),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Buat List Baru'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            side: const BorderSide(color: AppTheme.primary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: lists.length,
+                  itemBuilder: (context, index) {
+                    final list = lists[index];
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      leading: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.list_alt_rounded,
+                          color: AppTheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        list.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${list.itemCount} film',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.add_circle_outline,
+                        color: AppTheme.textSecondary,
+                        size: 22,
+                      ),
+                      onTap: () =>
+                          _addToList(context, ref, list.id, list.title),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addToList(
+    BuildContext context,
+    WidgetRef ref,
+    int listId,
+    String listTitle,
+  ) async {
+    try {
+      await ref.read(listRepositoryProvider).addItemToList(listId, movieId);
+
+      if (!context.mounted) return;
+
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Film ditambahkan ke "$listTitle".')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
   }
 }
 

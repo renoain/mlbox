@@ -63,17 +63,213 @@ class ListsTab extends ConsumerWidget {
       ),
       data: (lists) {
         if (lists.isEmpty) {
-          return const _ListsEmpty();
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.list_alt_outlined,
+                    color: Colors.white38,
+                    size: 52,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Belum ada list yang dibuat',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Kurasi film favoritmu jadi daftar sendiri.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white60, fontSize: 14),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => showCreateListDialog(context, ref),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Buat List Baru'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(180, 48),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
-        return ListView.builder(
+        return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          itemCount: lists.length,
-          itemBuilder: (context, index) => ListsCard(list: lists[index]),
+          children: [
+            for (final MovieList list in lists) ListsCard(list: list),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => showCreateListDialog(context, ref),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Buat List Baru'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                side: const BorderSide(color: AppTheme.primary),
+                minimumSize: const Size(double.infinity, 46),
+              ),
+            ),
+          ],
         );
       },
     );
   }
+}
+
+/// Dialog buat kurasi baru: judul, deskripsi, dan status publik.
+Future<void> showCreateListDialog(BuildContext context, WidgetRef ref) async {
+  final titleController = TextEditingController();
+  final descriptionController = TextEditingController();
+  bool isPublic = false;
+  bool saving = false;
+
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: AppTheme.surface,
+            title: const Text(
+              'Buat List Baru',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Judul list',
+                      hintText: 'mis. Film 2026 Favorit',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Deskripsi (opsional)',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: isPublic,
+                    activeThumbColor: AppTheme.primary,
+                    title: const Text(
+                      'Jadikan publik',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    subtitle: const Text(
+                      'Bisa dilihat user lain',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    onChanged: (value) => setState(() => isPublic = value),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(),
+                child: const Text('BATAL'),
+              ),
+              TextButton(
+                onPressed: saving
+                    ? null
+                    : () async {
+                        final title = titleController.text.trim();
+                        if (title.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Judul list tidak boleh kosong.'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() => saving = true);
+
+                        try {
+                          await ref
+                              .read(listRepositoryProvider)
+                              .createList(
+                                title: title,
+                                description: descriptionController.text,
+                                isPublic: isPublic,
+                              );
+                          ref.invalidate(listsProvider);
+
+                          if (dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('List dibuat.')),
+                            );
+                          }
+                        } catch (e) {
+                          setState(() => saving = false);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceFirst('Exception: ', ''),
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.primary,
+                        ),
+                      )
+                    : const Text(
+                        'BUAT',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  titleController.dispose();
+  descriptionController.dispose();
 }
 
 /// Kartu satu kurasi: judul, jumlah film, dan deskripsi singkatnya.
@@ -163,40 +359,6 @@ class ListsCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ListsEmpty extends StatelessWidget {
-  const _ListsEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.list_alt_outlined, color: Colors.white38, size: 52),
-            SizedBox(height: 16),
-            Text(
-              'Belum ada daftar',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Kurasi film favoritmu jadi daftar sendiri.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white60, fontSize: 14),
-            ),
-          ],
-        ),
       ),
     );
   }

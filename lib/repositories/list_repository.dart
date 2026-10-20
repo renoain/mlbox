@@ -18,4 +18,47 @@ class ListRepository {
       throw Exception(e.response?.data['message'] ?? 'Gagal memuat daftar');
     }
   }
+
+  /// Buat kurasi baru.
+  Future<MovieList> createList({
+    required String title,
+    String? description,
+    bool isPublic = false,
+  }) async {
+    try {
+      final response = await _api.dio.post(
+        '/lists',
+        data: {
+          'title': title,
+          if (description != null && description.trim().isNotEmpty)
+            'description': description.trim(),
+          'is_public': isPublic,
+        },
+      );
+
+      final data = response.data['data'];
+      return MovieList.fromJson(
+        Map<String, dynamic>.from(data as Map<String, dynamic>),
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal membuat daftar');
+    }
+  }
+
+  /// Masukkan film ke dalam list (`POST /api/lists/{id}/items`).
+  Future<void> addItemToList(int listId, int movieId, {String? note}) async {
+    try {
+      await _api.dio.post(
+        '/lists/$listId/items',
+        data: {
+          'movie_id': movieId,
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        },
+      );
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ?? 'Gagal menambahkan film ke list',
+      );
+    }
+  }
 }

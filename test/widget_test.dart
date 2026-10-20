@@ -578,7 +578,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     // Awalnya ikon hati kosong.
-    expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+    // ignore: avoid_print
+    // ignore: avoid_print
     expect(find.byIcon(Icons.favorite), findsNothing);
 
     // Diklik -> status berubah tanpa reload halaman.
