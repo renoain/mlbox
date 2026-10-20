@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
-import '../widgets/main_bottom_nav.dart';
+import '../widgets/lb_widgets.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -15,6 +15,8 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  String? _error;
 
   @override
   void dispose() {
@@ -28,9 +30,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showMessage('Email dan password wajib diisi.');
+      setState(() => _error = 'Email dan password wajib diisi.');
       return;
     }
+
+    setState(() => _error = null);
 
     final ok = await ref.read(authProvider.notifier).login(email, password);
 
@@ -39,8 +43,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (ok) {
       context.go('/home');
     } else {
-      final message = ref.read(authProvider).errorMessage ?? 'Login gagal.';
-      _showMessage(message);
+      setState(
+        () => _error = ref.read(authProvider).errorMessage ?? 'Login gagal.',
+      );
+    }
+  }
+
+  /// Tombol X: kembali ke halaman sebelumnya, atau ke Home kalau tidak ada.
+  void _close() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/home');
     }
   }
 
@@ -51,115 +65,53 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(authProvider).isLoading;
+    final auth = ref.watch(authProvider);
+    final bool isLoading = auth.isLoading;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF14181C),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/home');
-            }
-          },
+    return AuthShell(
+      heroAsset: 'assets/images/auth_login_hero.png',
+      heroFraction: 0.68,
+      title: 'Sign in to MLBox',
+      onClose: _close,
+      fields: [
+        AuthField(
+          hint: 'Email address',
+          keyboardType: TextInputType.emailAddress,
+          controller: _emailController,
+          enabled: !isLoading,
+          textInputAction: TextInputAction.next,
+          autofillHints: const [AutofillHints.email],
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-              const Text(
-                'Sign in to MLBox',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _emailController,
-                enabled: !isLoading,
-                keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  filled: true,
-                  fillColor: const Color(0xFF1C252E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _passwordController,
-                enabled: !isLoading,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                onSubmitted: (_) => _submit(),
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  filled: true,
-                  fillColor: const Color(0xFF1C252E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: isLoading
-                        ? null
-                        : () => context.push('/register'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3B444F),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(120, 50),
-                    ),
-                    child: const Text('Join MLBox'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00E054),
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size(88, 50),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.black,
-                            ),
-                          )
-                        : const Text('Go'),
-                  ),
-                ],
-              ),
-            ],
+        AuthField(
+          hint: 'Password',
+          obscure: true,
+          controller: _passwordController,
+          enabled: !isLoading,
+          showDivider: false,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submit(),
+        ),
+        if (_error != null) AuthError(_error!),
+      ],
+      buttons: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          LbOutlineButton(
+            label: 'JOIN',
+            onPressed: isLoading ? null : () => context.push('/register'),
           ),
-        ),
+          const SizedBox(width: 10),
+          LbOutlineButton(
+            label: 'RESET PASSWORD',
+            onPressed: isLoading
+                ? null
+                : () => _showMessage('Fitur belum tersedia.'),
+          ),
+          const SizedBox(width: 10),
+          LbGreenButton(label: 'GO', isLoading: isLoading, onPressed: _submit),
+        ],
       ),
-      // Navbar Guest (Users) index 0
-      bottomNavigationBar: const MainBottomNav(currentIndex: 0),
+      credit: const AuthCredit(film: 'Coraline'),
     );
   }
 }
