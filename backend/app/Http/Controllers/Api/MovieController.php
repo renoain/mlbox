@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\RateMovieRequest;
 use App\Http\Resources\MovieResource;
+use App\Http\Resources\ReviewResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Genre;
 use App\Models\Movie;
@@ -42,10 +43,19 @@ class MovieController extends Controller
             default => $query->orderByDesc('created_at'),
         };
 
-        $paginator = $query->paginate(20)->withQueryString();
+        $paginator = $query->paginate((int) $request->input('per_page', 100))->withQueryString();
+
+        // Agregat dihitung sekali untuk seluruh halaman, lalu dipakai ulang
+        // oleh tiap film supaya tidak ada query per film.
+        $movies = $paginator->getCollection();
+        $statsMap = $this->stats->statsMap($movies->modelKeys());
+
+        $resources = $movies
+            ->map(fn (Movie $movie) => MovieResource::withStats($movie, $statsMap))
+            ->values();
 
         return $this->success(
-            MovieResource::collection($paginator->getCollection())->resolve($request),
+            MovieResource::collection($resources)->resolve($request),
             [
                 'page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -67,12 +77,8 @@ class MovieController extends Controller
         // Catatan: JsonResource::resolve() tidak menggabungkan additional() pada
         // versi Laravel ini, jadi angka agregat di-merge eksplisit di sini.
         $payload = array_merge(
-            MovieResource::make($movie)->resolve($request),
+            MovieResource::withStats($movie)->resolve($request),
             [
-                'average_rating' => $this->stats->getAverageRating($movie->id),
-                'review_count' => $this->stats->getReviewCount($movie->id),
-                'watched_count' => $this->stats->getWatchedCount($movie->id),
-                'watchlist_count' => $this->stats->getWatchlistCount($movie->id),
                 'like_count' => $movie->likes()->count(),
                 'liked' => $user !== null && $movie->likes()->where('user_id', $user->id)->exists(),
                 'in_watchlist' => $user !== null && $movie->watchlists()->where('user_id', $user->id)->exists(),
@@ -86,6 +92,41 @@ class MovieController extends Controller
         );
 
         return $this->success($payload);
+    }
+
+    /**
+     * Daftar review untuk sebuah film.
+     *
+     * Endpoint publik supaya guest juga bisa melihat review user lain.
+     */
+    public function reviews(Request $request, int $id): JsonResponse
+    {
+        $movie = Movie::find($id);
+
+        if ($movie === null) {
+            return $this->failure('Film tidak ditemukan.', 404);
+        }
+
+        $reviews = $movie->reviews()
+            ->with([
+                'user',
+                'movie.genres',
+                'likes' => fn ($query) => $query->where('user_id', $request->user()?->id),
+            ])
+            ->withCount('likes')
+            ->orderByDesc('rating')
+            ->orderByDesc('created_at')
+            ->paginate((int) $request->input('per_page', 20))
+            ->withQueryString();
+
+        return $this->success(
+            ReviewResource::collection($reviews->getCollection())->resolve($request),
+            [
+                'page' => $reviews->currentPage(),
+                'per_page' => $reviews->perPage(),
+                'total' => $reviews->total(),
+            ],
+        );
     }
 
     /**

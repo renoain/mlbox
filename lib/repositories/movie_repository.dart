@@ -6,12 +6,18 @@ import '../models/movie.dart';
 class MovieRepository {
   final ApiClient _api = ApiClient();
 
+  /// Jumlah film per halaman. Backend memaginasi, jadi angka ini harus
+  /// cukup besar agar seluruh katalog (52 film) sekaligus termuat.
+  static const int perPage = 100;
+
   // 1. Ambil Daftar Film (Home)
   Future<List<Movie>> getMovies() async {
     try {
-      final response = await _api.dio.get('/movies');
-      final List data = response.data['data'] ?? [];
-      return data.map((json) => Movie.fromJson(json)).toList();
+      final response = await _api.dio.get(
+        '/movies',
+        queryParameters: {'per_page': perPage},
+      );
+      return _parseList(response.data);
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal memuat film');
     }
@@ -21,7 +27,11 @@ class MovieRepository {
   Future<Movie> getMovieDetail(int id) async {
     try {
       final response = await _api.dio.get('/movies/$id');
-      return Movie.fromJson(response.data['data']);
+      final data = response.data['data'];
+      if (data is! Map) {
+        throw Exception('Data film tidak valid');
+      }
+      return Movie.fromJson(Map<String, dynamic>.from(data));
     } on DioException catch (e) {
       throw Exception(
         e.response?.data['message'] ?? 'Gagal memuat detail film',
@@ -49,5 +59,24 @@ class MovieRepository {
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Gagal menghapus rating');
     }
+  }
+
+  /// Backend membungkus daftar film di `data`. Bentuk lain yang dibungkus
+  /// (mis. `data.items`) tetap diterima supaya parsing tidak rapuh.
+  static List<Movie> _parseList(dynamic body) {
+    dynamic payload = body is Map ? body['data'] : body;
+
+    if (payload is Map) {
+      payload =
+          payload['items'] ?? payload['data'] ?? payload['results'] ?? payload;
+    }
+    if (payload is! List) {
+      return const [];
+    }
+
+    return payload
+        .whereType<Map>()
+        .map((json) => Movie.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
   }
 }

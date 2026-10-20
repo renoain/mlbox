@@ -41,4 +41,20 @@ class ReviewRepository {
       throw Exception(e.response?.data['message'] ?? 'Gagal memuat review');
     }
   }
+
+  /// Review dari semua user untuk sebuah film. Endpoint-nya publik, jadi
+  /// guest juga bisa memanggilnya.
+  Future<List<Review>> getMovieReviews(int movieId) async {
+    try {
+      final response = await _api.dio.get('/movies/$movieId/reviews');
+      final List data = response.data['data'] ?? [];
+      return data
+          .map((json) => Review.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data['message'] ?? 'Gagal memuat review film',
+      );
+    }
+  }
 }

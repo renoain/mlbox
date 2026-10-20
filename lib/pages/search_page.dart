@@ -165,8 +165,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         final movie = movies[index];
         return MovieCard(
           title: movie.title,
-          posterUrl: movie.posterUrl ?? '',
-          rating: 0,
+          posterUrl: movie.posterUrl,
+          rating: movie.averageRating ?? 0,
           onTap: () => context.push('/movie/${movie.id}'),
         );
       },

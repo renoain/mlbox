@@ -33,7 +33,10 @@ class MovieBatchImportService
             return ['created' => 0, 'failed' => 0, 'unmatched' => [], 'errors' => ['movies.json tidak ditemukan di dalam zip.']];
         }
 
-        $entries = json_decode((string) file_get_contents($jsonPath), true);
+        $raw = (string) file_get_contents($jsonPath);
+        // Buang BOM UTF-8 jika ada agar json_decode tidak gagal.
+        $raw = ltrim($raw, "\xEF\xBB\xBF");
+        $entries = json_decode($raw, true);
 
         if (! is_array($entries)) {
             return ['created' => 0, 'failed' => 0, 'unmatched' => [], 'errors' => ['movies.json bukan JSON array yang valid.']];

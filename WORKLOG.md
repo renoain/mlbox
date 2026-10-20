@@ -194,37 +194,180 @@ Belum dipakai (kandidat berikutnya):
 
 ---
 
+## Sesi 2026-10-20 (lanjutan) — Poster, Data Film, dan Alur Tulis Review
+
+### Yang sudah ada dari sesi sebelumnya (masih aktif)
+- `lib/core/api_config.dart` — host adaptif: `10.0.2.2` (Android emulator),
+  `127.0.0.1` (web/desktop), bisa di-override dengan
+  `--dart-define=API_BASE_URL=http://<ip-lan>:8000`.
+- `lib/widgets/poster_image.dart` — widget poster reusable: web pakai
+  `Image.network` + `WebHtmlElementStrategy.fallback`, native pakai
+  `CachedNetworkImage`, ada placeholder `Icons.movie_rounded` (bukan layar merah).
+- `AndroidManifest.xml` — sudah ada `INTERNET` + `usesCleartextTraffic="true"`.
+- `GET /api/media/{path}` (backend `MediaController`) — menyajikan poster lewat
+  Laravel, **bukan** `/storage/...`, supaya responsnya membawa header CORS.
+  Tanpa ini, Flutter Web memuat gambar via XHR dan browser memblokirnya.
+
+### Bug yang ditemukan & diperbaiki di sesi ini
+
+1. **Agregat rating hilang di film pertama tiap daftar** (root cause).
+   `MovieResource` punya argumen constructor kedua `bool $withStats`. Laravel
+   memetakan koleksi dengan `new MovieResource($model, $key)`, jadi argumen
+   kedua berisi *kunci* koleksi (0, 1, 2, ...) yang di-coerce ke bool.
+   Akibatnya film indeks 0 tidak dapat `average_rating`/`review_count`,
+   sedangkan film lain dapat. Flag dipindah ke properti publik + factory
+   `MovieResource::withStats()`.
+
+2. **Daftar film tidak punya agregat sama sekali** (akibat langsung no. 1).
+   `MovieController@index`, `HomeController`, dan `AdminMovieController@index`
+   sekarang memakai `MovieStatsService::statsMap()` — satu query per tabel
+   (bukan N+1) — lalu menyalin hasilnya ke tiap film.
+
+3. **Alur "beri rating -> tulis review" gagal dengan 409.** `POST /movies/{id}/rate`
+   membuat baris `reviews` (rating saja). Setelah itu `POST /reviews` menolak
+   dengan 409 karena review-nya "sudah ada". `ReviewController@store` sekarang
+   memakai `firstOrNew` (upsert): 201 untuk review baru, 200 untuk pembaruan.
+
+4. **Cast/crew di Detail Film masih data dummy** ("Christian Bale / Patrick
+   Bateman"). Sekarang dibaca dari API: `Movie` mem-parse `cast` (teks dipisah
+   koma ATAU list), `crew`, `backdrop_url`, `original_title`, `language`,
+   `country`, `is_featured`.
+
+5. **Seeder membuat user dengan email kosong.** `env('DEMO_USER_EMAIL', 'default')`
+   mengembalikan `''` kalau kuncinya ada di `.env` tapi nilainya kosong.
+   Diganti `?:` + `updateOrCreate`. Akun demo sekarang:
+   `demo@mailboxh.test` / `admin@mailboxh.test`, password `password`.
+
+6. **Angka nol bawaan menimpa angka asli** di `MovieStatsService` — PHP `+`
+   menyimpan nilai operand **kiri**, jadi `emptyStats() + [data asli]` membuang
+   data. Diganti `array_merge` (operand kanan menang).
+
+### Perbaikan tampilan
+- `search_page.dart` menampilkan rating asli (`movie.averageRating`), bukan `0`.
+- `poster_tile.dart` punya lencana bintang di pojok poster.
+- `home_page.dart` memakai `AppTheme.background` (sebelumnya warna hardcode
+  `#191C21` yang beda dari tema `#14181C`).
+- `movie_detail_page.dart` memakai `backdrop_url` untuk header kalau ada.
+
+---
+
+## Sesi 2026-10-20 (kedua) — Fitur Log, Review, Tab Home, dan Profile
+
+Urutan pengerjaan: **Task 1 -> Task 2 -> Task 4 -> Task 3**. Alasannya, Task 1
+satu-satunya bug backend, dan Task 3 + Task 4 menampilkan data yang kosong
+selama alur itu mati, jadi tidak bisa diverifikasi sebelum Task 1 beres.
+
+### Task 1 — "Mark Watched" sekarang masuk ke Log
+
+Akar masalahnya ada di backend, bukan di tombolnya: `POST /api/watched` hanya
+membuat baris `watched`, sedangkan halaman Log membaca `GET /api/diary`
+(tabel `diary_entries`). Jadi filmnya benar-benar tidak pernah masuk log.
+
+- `App\Services\WatchLogService` (baru) — menjaga agar `watched` dan
+  `diary_entries` selalu sinkron:
+  - `markWatched()` — buat `watched` + entri log pada tanggal yang sama.
+  - `unwatch()` — hapus `watched` + semua entri log film tersebut.
+  - `deleteDiaryEntry()` — hapus entri log; `watched` ikut hilang kalau
+    film itu tidak punya entri log lain.
+- `WatchedController@store` dan `@destroy` memakai service tersebut.
+- `DiaryController@store` sekarang juga menandai film sebagai watched.
+  Log ulang di tanggal yang sama **memperbarui** entri, bukan 409.
+- `LogController@store` memakai service yang sama dan `Review::firstOrNew`
+  (sebelumnya `Review::create` → 500 kalau rating-nya sudah ada).
+- Frontend: tombol "Watched" jadi hijau + ceklis saat aktif, abu-abu saat
+  belum; `diaryProvider` di-invalidate supaya halaman Log ikut ter-update.
+
+### Task 2 — Rating rata-rata + daftar review di Detail Film
+
+- Backend: `GET /api/movies/{id}/reviews` (baru, **publik**) di
+  `MovieController@reviews`, terdaftar di grup route `throttle:movies`.
+- Backend: `user_name` sebelumnya kosong karena relasi `user` tidak pernah
+  di-eager-load. Diperbaiki di `ReviewController@index`/`@store`,
+  `ProfileController@reviews`, dan `MovieController@reviews`.
+- Frontend: `_AverageRating` (bintang + rata-rata + jumlah review) di dekat
+  judul, `_ReviewsSection` di bawah (avatar, nama, bintang, tanggal, teks).
+- `Review` model sekarang membawa `movie` dan `likesCount`, dan `rating`
+  aman terhadap null.
+
+### Task 4 — Profile
+
+- `GET /api/profile/stats` sudah ada di backend, tinggal dipakai.
+- `ProfileStats` model, `ProfileRepository`, `profileStatsProvider`.
+- UI: avatar dengan inisial, nama, email, grid 4 statistik (watched,
+  watchlist, reviews, lists), pull-to-refresh, tombol Logout + Settings tetap.
+
+### Task 3 — Tab Home: Reviews, Lists, Journal
+
+- Tab **Reviews** -> `GET /api/reviews` (`myReviewsProvider`). Review punya
+  poster, judul film, bintang, dan teksnya.
+- Tab **Lists** -> `GET /api/lists`. Model `MovieList`, `ListRepository`,
+  `listsProvider`. Kartu menampilkan judul, jumlah film, status publik/privat.
+- Tab **Journal** -> placeholder "Editorial Journal coming soon".
+- Guest melihat prompt "Masuk untuk melihat ..." di tab Reviews & Lists
+  (keduanya butuh token), bukan crash atau layar kosong.
+
+### File baru
+
+| File | Isi |
+|---|---|
+| `backend/app/Services/WatchLogService.php` | sinkronisasi `watched` <-> `diary_entries` |
+| `lib/models/movie_list.dart` | model kurasi |
+| `lib/models/profile_stats.dart` | model statistik profil |
+| `lib/repositories/list_repository.dart` | `GET /api/lists` |
+| `lib/repositories/profile_repository.dart` | `GET /api/profile/stats` |
+| `lib/providers/profile_provider.dart` | `profileStatsProvider` |
+
+---
+
 ## Validasi Terakhir
 
 - `dart format lib test` -> rapi
 - `flutter analyze` -> No issues found
-- `flutter test` -> 3/3 passed (navigasi guest + validasi login)
-- `flutter run -d chrome` -> 0 error/exception (backend Laravel hidup)
-- Endpoint auth/watchlist/watched diuji langsung via HTTP -> sesuai
+- `flutter test` -> 18/18 passed
+- Uji integrasi HTTP end-to-end -> **73/73 passed** (4 skrip):
+  - katalog/poster/auth/review -> 25/25
+  - watched <-> log -> 14/14
+  - endpoint review film -> 10/10
+  - 4 fitur baru (log, review, tab, profil) -> 24/24
+- `GET /api/movies/{id}/reviews` -> publik, `user_name` + `movie` terisi.
+- `GET /api/profile/stats` -> watched/watchlist/reviews/lists/diary sesuai
+  dengan isi tabel.
 - Android -> **BELUM diuji** (tidak ada perangkat terdeteksi)
+
+> Catatan: PowerShell 5.1 membaca file .ps1 tanpa BOM sebagai ANSI, jadi
+> karakter non-ASCII di skrip uji bisa rusak (menghasilkan 422 palsu) dan
+> literal ASCII pun bisa termutasi. Simpan skrip uji dengan BOM.
 
 ---
 
 ## Langkah Selanjutnya (TODO)
 
-1. Merge Tahap 5 (rating di detail) + fix backend ke `main`.
-2. Tampilkan daftar review di Detail Film — butuh endpoint publik review per film
-   (backend belum punya; perlu `GET /movies/{id}/reviews` bila diinginkan).
-3. Sambungkan `GET /home` bila ingin beranda khusus user login.
-4. Rapikan `lib/pages/settings_page.dart` (belum punya rute, masih logout palsu).
-5. Uji Android (verifikasi baseUrl `10.0.2.2`; HP fisik perlu IP LAN).
-6. Sinkronkan `docs/PROGRESS.md` dengan struktur aktual.
+1. Merge kedua sesi ini ke `main` (semua perubahan masih uncommitted).
+2. Sambungkan `GET /home` bila ingin beranda khusus user login.
+3. Rapikan `lib/pages/settings_page.dart` (belum punya rute, masih logout palsu).
+4. Uji Android (verifikasi baseUrl `10.0.2.2`; HP fisik perlu IP LAN).
+5. Sinkronkan `docs/PROGRESS.md` dengan struktur aktual.
+6. Section `featured` di `GET /home` kosong — `movies.json` tidak punya
+   `is_featured: true`. Tandai 5 film lewat admin panel atau seeder.
+7. Formulir "Tulis Review" belum memuat review yang sudah ada, jadi user
+   tidak melihat teks lamanya sebelum menimpa.
 
-> Catatan backend: `ReviewResource.user_name` hanya terisi bila relasi `user`
-> di-eager-load. `ReviewController@index`/`store` belum memuatnya, jadi nama
-> user tampil kosong (fallback `Anonymous` di app).
-> `GET /movies/{id}` tidak mengembalikan rating milik user yang login, jadi
-> bintang "Rating kamu" di app mulai dari 0 (tidak ter-preselect).
+> Catatan backend: `GET /movies/{id}` tidak mengembalikan rating milik user
+> yang login, jadi bintang "Rating kamu" di app mulai dari 0 (tidak
+> ter-preselect).
 
 ---
 
 ## Catatan / Jebakan
 
+- **Jangan pakai argumen constructor kedua di `JsonResource`.** Laravel
+  memanggil `new Resource($model, $key)` saat memetakan koleksi, jadi
+  argumen kedua berisi kunci koleksi, bukan nilai pilihanmu.
+- **Hati-hati operator `+` untuk array di PHP.** `+$` menyimpan nilai operand
+  **kiri** untuk key yang sama. Pakai `array_merge` kalau nilai kanan yang
+  harus menang.
+- `env('KEY', 'default')` mengembalikan string kosong bila `KEY=` ada di
+  `.env` tapi kosong. Pakai `env('KEY') ?: 'default'`.
 - Tema global `elevatedButtonTheme.minimumSize = Size(double.infinity, 50)`.
   Selalu set `minimumSize` eksplisit untuk tombol di dalam `Row`.
 - Token disimpan di key `'auth_token'` (sama di `api_client.dart` & `storage.dart`).

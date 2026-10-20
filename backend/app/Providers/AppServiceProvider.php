@@ -33,6 +33,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('movies', fn (Request $request) => Limit::perMinute(60)
             ->by($request->user()?->id ?: $request->ip()));
 
+        // Poster/backdrop: satu halaman bisa memuat puluhan gambar, jadi
+        // batasnya jauh lebih longgar dari endpoint API biasa.
+        RateLimiter::for('media', fn (Request $request) => Limit::perMinute(600)
+            ->by($request->ip()));
+
         RateLimiter::for('social', fn (Request $request) => Limit::perMinute(30)
             ->by($request->user()?->id ?: $request->ip()));
 

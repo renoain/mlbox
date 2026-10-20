@@ -55,7 +55,7 @@ class ListController extends Controller
             'is_public' => (bool) $list->is_public,
         ]);
 
-        return $this->success(new ListResource($list->loadCount('items')), null, 201);
+        return $this->success(new ListResource($list->load('user')->loadCount('items')), null, 201);
     }
 
     public function show(Request $request, int $id): JsonResponse

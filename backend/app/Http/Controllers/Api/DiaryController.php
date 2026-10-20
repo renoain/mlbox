@@ -11,6 +11,7 @@ use App\Http\Resources\ReviewResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\DiaryEntry;
 use App\Services\WatchlistService;
+use App\Services\WatchLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,10 @@ use Illuminate\Support\Facades\DB;
 class DiaryController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(private readonly WatchLogService $log)
+    {
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -59,28 +64,33 @@ class DiaryController extends Controller
         return $this->success($grouped->values()->all());
     }
 
-    public function store(StoreDiaryRequest $request, WatchlistService $watchlists): JsonResponse
+    public function store(StoreDiaryRequest $request, WatchlistService $watchlists, WatchLogService $log): JsonResponse
     {
         $userId = $request->user()->id;
         $movieId = $request->integer('movie_id');
         $watchedDate = ($request->date('watched_date') ?? now())->toDateString();
+        $note = $request->input('note');
 
         // Satu film boleh punya banyak entri selama tanggalnya berbeda.
-        $exists = DiaryEntry::where('user_id', $userId)
+        $existing = DiaryEntry::where('user_id', $userId)
             ->where('movie_id', $movieId)
             ->whereDate('watched_date', $watchedDate)
-            ->exists();
+            ->first();
 
-        if ($exists) {
-            return $this->failure('Entri diary untuk tanggal ini sudah ada.', 409);
+        if ($existing !== null) {
+            // Entri untuk tanggal yang sama sudah ada, jadi diperbarui
+            // (mis. menambah catatan) alih-alih ditolak.
+            if ($note !== null) {
+                $existing->update(['note' => $note]);
+            }
+
+            return $this->success(new DiaryResource($existing->fresh(['movie.genres', 'tags'])));
         }
 
-        $entry = DiaryEntry::create([
-            'user_id' => $userId,
-            'movie_id' => $movieId,
-            'watched_date' => $watchedDate,
-            'note' => $request->input('note'),
-        ]);
+        // Mencatat ke log berarti film sudah ditonton, jadi baris `watched`
+        // dibuat bersamaan supaya kedua tabel tetap sinkron.
+        $result = $log->markWatched($userId, $movieId, $watchedDate, $note);
+        $entry = $result['entry'];
 
         // Film yang sudah di-log keluar dari watchlist.
         $watchlists->remove($userId, $movieId);
@@ -103,7 +113,7 @@ class DiaryController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $deleted = $request->user()->diaryEntries()->where('id', $id)->delete();
+        $deleted = $this->log->deleteDiaryEntry($request->user()->id, $id);
 
         if ($deleted === 0) {
             return $this->failure('Entri diary tidak ditemukan.', 404);

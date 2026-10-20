@@ -11,6 +11,7 @@ use App\Http\Resources\MovieResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Movie;
 use App\Services\AdminAuditService;
+use App\Services\MovieStatsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,10 @@ class AdminMovieController extends Controller
     use ApiResponse;
 
     public const FEATURED_LIMIT = 5;
+
+    public function __construct(private readonly MovieStatsService $stats)
+    {
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -35,8 +40,15 @@ class AdminMovieController extends Controller
 
         $movies = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
 
+        $collection = $movies->getCollection();
+        $statsMap = $this->stats->statsMap($collection->modelKeys());
+
+        $resources = $collection
+            ->map(fn (Movie $movie) => MovieResource::withStats($movie, $statsMap))
+            ->values();
+
         return $this->success(
-            MovieResource::collection($movies->getCollection())->resolve($request),
+            MovieResource::collection($resources)->resolve($request),
             [
                 'page' => $movies->currentPage(),
                 'per_page' => $movies->perPage(),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
 import '../providers/library_provider.dart';
+import '../providers/movie_provider.dart';
 import '../widgets/rating_stars.dart';
 
 class ReviewFormPage extends ConsumerStatefulWidget {

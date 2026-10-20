@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'poster_image.dart';
+
 class MovieCard extends StatelessWidget {
   final String title;
-  final String posterUrl;
+  final String? posterUrl;
   final double rating;
   final VoidCallback? onTap;
 
@@ -26,20 +28,7 @@ class MovieCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               child: AspectRatio(
                 aspectRatio: 2 / 3,
-                child: Image.network(
-                  posterUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: const Color(0xFF1D252C),
-                      child: const Icon(
-                        Icons.movie_rounded,
-                        color: Colors.white24,
-                        size: 32,
-                      ),
-                    );
-                  },
-                ),
+                child: PosterImage(url: posterUrl, fit: BoxFit.cover),
               ),
             ),
           ),

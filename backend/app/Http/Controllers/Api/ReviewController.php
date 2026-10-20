@@ -19,8 +19,10 @@ class ReviewController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        // Relasi `user` harus di-eager-load, kalau tidak `user_name` di
+        // payload akan kosong (fallback "Anonymous" di app).
         $reviews = $request->user()->reviews()
-            ->with(['movie.genres', 'likes' => fn ($q) => $q->where('user_id', $request->user()->id)])
+            ->with(['user', 'movie.genres', 'likes' => fn ($q) => $q->where('user_id', $request->user()->id)])
             ->withCount('likes')
             ->latest()
             ->get();
@@ -32,19 +34,29 @@ class ReviewController extends Controller
     {
         $movieId = $request->integer('movie_id');
 
-        $exists = Review::where('user_id', $request->user()->id)->where('movie_id', $movieId)->exists();
-
-        if ($exists) {
-            return $this->failure('Anda sudah punya review untuk film ini. Gunakan endpoint ubah.', 409);
-        }
-
-        $review = Review::create([
+        // Satu user hanya boleh punya satu review per film.
+        //
+        // Kalau user sudah memberi rating bintang lewat
+        // `POST /movies/{id}/rate`, baris review-nya sudah ada (rating saja,
+        // tanpa teks). Menolak dengan 409 akan membuat alur "beri rating ->
+        // tulis review" gagal, jadi baris yang ada diperbarui di sini.
+        $review = Review::firstOrNew([
             'user_id' => $request->user()->id,
             'movie_id' => $movieId,
-            'rating' => $request->integer('rating'),
-            'content' => $request->input('content'),
         ]);
 
+        $isNew = ! $review->exists;
+
+        $review->rating = $request->integer('rating');
+
+        // Teks review hanya ditimpa kalau request benar-benar mengirim
+        // `content`, supaya review yang sudah ada tidak ikut terhapus saat
+        // user menyimpan review tanpa menulis apa pun.
+        if ($request->has('content')) {
+            $review->content = $request->input('content');
+        }
+
+        $review->save();
         $logger->log($request->user()->id, ActivityLogger::TYPE_RATED, $review->id, [
             'movie_id' => $movieId,
             'rating' => $review->rating,
@@ -57,7 +69,11 @@ class ReviewController extends Controller
             ]);
         }
 
-        return $this->success(new ReviewResource($review->load('movie.genres')), null, 201);
+        return $this->success(
+            new ReviewResource($review->load(['user', 'movie.genres'])),
+            null,
+            $isNew ? 201 : 200,
+        );
     }
 
     public function update(UpdateReviewRequest $request, int $id): JsonResponse

@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
 import '../models/movie.dart';
+import '../models/review.dart';
 import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
+import '../widgets/poster_image.dart';
 import '../widgets/rating_stars.dart';
 
 class MovieDetailPage extends ConsumerWidget {
@@ -46,9 +48,11 @@ class MovieDetailPage extends ConsumerWidget {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      movie.posterUrl != null
-                          ? Image.network(movie.posterUrl!, fit: BoxFit.cover)
-                          : Container(color: AppTheme.surface),
+                      PosterImage(
+                        url: movie.backdropUrl ?? movie.posterUrl,
+                        fit: BoxFit.cover,
+                        placeholder: Container(color: AppTheme.surface),
+                      ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -86,6 +90,8 @@ class MovieDetailPage extends ConsumerWidget {
                                       fontSize: 13,
                                     ),
                                   ),
+                                  const SizedBox(height: 6),
+                                  _AverageRating(movie: movie),
                                 ],
                               ),
                             ),
@@ -94,16 +100,17 @@ class MovieDetailPage extends ConsumerWidget {
                               height: 100,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(4),
-                                image: movie.posterUrl != null
-                                    ? DecorationImage(
-                                        image: NetworkImage(movie.posterUrl!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
                                 color: AppTheme.surface,
                                 border: Border.all(
                                   color: Colors.white24,
                                   width: 1,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: PosterImage(
+                                  url: movie.posterUrl,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                             ),
@@ -174,18 +181,46 @@ class MovieDetailPage extends ConsumerWidget {
                       const SizedBox(height: 30),
 
                       // Cast
-                      const Text(
-                        'CAST',
-                        style: TextStyle(
-                          color: AppTheme.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
+                      if (movie.cast.isNotEmpty) ...[
+                        const Text(
+                          'CAST',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildCastRow('Christian Bale', 'Patrick Bateman'),
-                      _buildCastRow('Justin Theroux', 'Timothy Bryce'),
+                        const SizedBox(height: 10),
+                        ...movie.cast.map(_buildCastRow),
+                      ],
+
+                      // Crew
+                      if (movie.crew != null &&
+                          movie.crew!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        const Text(
+                          'CREW',
+                          style: TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          movie.crew!,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+
+                      // Review dari semua user
+                      const SizedBox(height: 28),
+                      _ReviewsSection(movieId: movie.id),
                     ],
                   ),
                 ),
@@ -197,29 +232,259 @@ class MovieDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildCastRow(String name, String character) {
+  Widget _buildCastRow(String name) {
+    final String trimmed = name.trim();
+    final String initial = trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          const CircleAvatar(radius: 16, backgroundColor: Colors.grey),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppTheme.surface,
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: AppTheme.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
               ),
-              Text(
-                character,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ringkasan rating rata-rata film, ditampilkan di dekat judul.
+class _AverageRating extends StatelessWidget {
+  final Movie movie;
+
+  const _AverageRating({required this.movie});
+
+  @override
+  Widget build(BuildContext context) {
+    final double average = movie.averageRating ?? 0;
+    final int count = movie.reviewCount;
+
+    if (count == 0) {
+      return const Text(
+        'Belum ada rating',
+        style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+      );
+    }
+
+    return Row(
+      children: [
+        RatingStars(rating: average.round(), size: 14),
+        const SizedBox(width: 6),
+        Text(
+          average.toStringAsFixed(1),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '($count)',
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
+/// Daftar review dari semua user untuk sebuah film.
+class _ReviewsSection extends ConsumerWidget {
+  final int movieId;
+
+  const _ReviewsSection({required this.movieId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reviewsAsync = ref.watch(movieReviewsProvider(movieId));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'REVIEWS',
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 12),
+        reviewsAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppTheme.primary,
                 ),
               ),
+            ),
+          ),
+          error: (error, stackTrace) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.cloud_off_rounded,
+                  color: AppTheme.textSecondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Gagal memuat review: ${error.toString().replaceFirst('Exception: ', '')}',
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      ref.invalidate(movieReviewsProvider(movieId)),
+                  child: const Text('Coba lagi'),
+                ),
+              ],
+            ),
+          ),
+          data: (reviews) {
+            if (reviews.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Belum ada review untuk film ini.',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                for (final Review review in reviews)
+                  _ReviewTile(review: review),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Satu baris review: avatar, nama user, bintang, tanggal, dan teksnya.
+class _ReviewTile extends StatelessWidget {
+  final Review review;
+
+  const _ReviewTile({required this.review});
+
+  static const List<String> _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
+
+  String get _formattedDate {
+    final DateTime? parsed = DateTime.tryParse(review.createdAt);
+    if (parsed == null) return '';
+
+    return '${parsed.day} ${_months[parsed.month - 1]} ${parsed.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String name = review.userName.trim();
+    final String initial = name.isEmpty ? '?' : name[0].toUpperCase();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: AppTheme.surface,
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    color: AppTheme.primary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  name.isEmpty ? 'Anonymous' : name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (_formattedDate.isNotEmpty)
+                Text(
+                  _formattedDate,
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
             ],
           ),
+          if (review.rating > 0) ...[
+            const SizedBox(height: 8),
+            RatingStars(rating: review.rating, size: 13),
+          ],
+          if (review.content.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              review.content,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -293,11 +558,14 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
         ref.invalidate(watchlistProvider);
       }
       ref.invalidate(watchedProvider);
+      // Menandai watched juga membuat entri log, jadi halaman Log perlu
+      // disegarkan supaya film langsung terlihat di sana.
+      ref.invalidate(diaryProvider);
       if (mounted) {
         _showMessage(
           currentlyWatched
               ? 'Dibatalkan dari watched.'
-              : 'Ditandai sudah ditonton.',
+              : 'Ditandai sudah ditonton dan masuk ke log.',
         );
       }
     } catch (e) {
@@ -336,6 +604,8 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
       // Backend otomatis mengeluarkan film dari watchlist saat di-log.
       ref.invalidate(diaryProvider);
       ref.invalidate(watchlistProvider);
+      // Mencatat ke log juga menandai film sebagai watched.
+      ref.invalidate(watchedProvider);
       if (mounted) _showMessage('Film masuk ke log.');
     } catch (e) {
       if (mounted) {
@@ -374,8 +644,11 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
                 icon: Icon(isWatched ? Icons.check : Icons.done, size: 18),
                 label: Text(isWatched ? 'WATCHED' : 'MARK WATCHED'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B444F),
-                  foregroundColor: Colors.white,
+                  // Hijau kalau film sudah ditonton, abu-abu kalau belum.
+                  backgroundColor: isWatched
+                      ? AppTheme.primary
+                      : const Color(0xFF3B444F),
+                  foregroundColor: isWatched ? Colors.black : Colors.white,
                   minimumSize: const Size(0, 50),
                 ),
               ),
@@ -564,50 +837,18 @@ class _RatingSectionState extends ConsumerState<_RatingSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Rata-rata dari semua user sudah tampil di dekat judul, jadi di sini
+        // cukup star rating milik user yang sedang login.
         Row(
           children: [
             const Text(
-              'RATINGS',
+              'RATING KAMU',
               style: TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
               ),
-            ),
-            const SizedBox(width: 16),
-            if (count > 0 || average > 0) ...[
-              Text(
-                average.toStringAsFixed(1),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              RatingStars(rating: average.round(), size: 16),
-              const SizedBox(width: 8),
-              Text(
-                '($count)',
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            ] else
-              const Text(
-                'Belum ada rating',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            const Text(
-              'Rating kamu',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
             ),
             const SizedBox(width: 12),
             if (_busy)
@@ -625,6 +866,15 @@ class _RatingSectionState extends ConsumerState<_RatingSection> {
                 size: 28,
                 isInteractive: true,
                 onRatingChanged: _rate,
+              ),
+            const SizedBox(width: 12),
+            if (count > 0)
+              Text(
+                'Rata-rata $average dari $count review',
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                ),
               ),
           ],
         ),

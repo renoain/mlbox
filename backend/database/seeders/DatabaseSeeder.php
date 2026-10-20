@@ -1,4 +1,4 @@
-?php
+<?php
 
 declare(strict_types=1);
 
@@ -27,15 +27,22 @@ class DatabaseSeeder extends Seeder
 
     private function seedUsers(): void
     {
-        $password = env('DEMO_USER_PASSWORD', 'password');
+        // `env()` mengembalikan string kosong kalau kuncinya ada di .env tapi
+        // nilainya kosong, bukan nilai default. Pakai `?:` supaya kredensial
+        // demo tetap punya nilai yang masuk akal.
+        $password = env('DEMO_USER_PASSWORD') ?: 'password';
+        $adminEmail = env('DEMO_ADMIN_EMAIL') ?: 'admin@mailboxh.test';
+        $userEmail = env('DEMO_USER_EMAIL') ?: 'demo@mailboxh.test';
 
-        User::firstOrCreate(
-            ['email' => env('DEMO_ADMIN_EMAIL', 'admin@mailboxh.test')],
+        // `updateOrCreate` supaya menjalankan seeder berulang kali selalu
+        // menghasilkan akun demo dengan kredensial yang sama.
+        User::updateOrCreate(
+            ['email' => $adminEmail],
             ['name' => 'Admin', 'password' => $password, 'role' => 'admin'],
         );
 
-        User::firstOrCreate(
-            ['email' => env('DEMO_USER_EMAIL', 'demo@mailboxh.test')],
+        User::updateOrCreate(
+            ['email' => $userEmail],
             ['name' => 'Demo User', 'password' => $password, 'role' => 'user'],
         );
     }

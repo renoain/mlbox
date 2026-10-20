@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'api_config.dart';
 
 // import '../providers/auth_provider.dart'; // (Nanti kita sambungkan)
 
@@ -9,17 +9,8 @@ class ApiClient {
   final Dio _dio = Dio();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  /// Android emulator tidak bisa mengakses `127.0.0.1` host lewat alamat itu;
-  /// harus memakai `10.0.2.2`. Web/desktop tetap memakai `127.0.0.1`.
-  static String get _baseUrl {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000/api';
-    }
-    return 'http://127.0.0.1:8000/api';
-  }
-
   ApiClient() {
-    _dio.options.baseUrl = _baseUrl;
+    _dio.options.baseUrl = ApiConfig.apiBaseUrl;
     _dio.options.headers['Accept'] = 'application/json';
 
     _dio.interceptors.add(

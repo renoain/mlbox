@@ -8,6 +8,7 @@ use App\Http\Resources\MovieResource;
 use App\Http\Traits\ApiResponse;
 use App\Models\Movie;
 use App\Services\HomeService;
+use App\Services\MovieStatsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -15,8 +16,10 @@ class HomeController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(private readonly HomeService $home)
-    {
+    public function __construct(
+        private readonly HomeService $home,
+        private readonly MovieStatsService $stats,
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -38,22 +41,15 @@ class HomeController extends Controller
      */
     private function mapSection(string $section, $movies, Request $request): array
     {
-        // Catatan: JsonResource::resolve() tidak menggabungkan additional() pada
-        // versi Laravel ini, jadi angka agregat di-merge eksplisit di sini.
-        if ($section === 'most_watched') {
-            return $movies->map(fn (Movie $movie) => array_merge(
-                MovieResource::make($movie)->resolve($request),
-                ['watched_count' => $movie->watcheds_count],
-            ))->all();
-        }
+        // Agregat dihitung sekali untuk seluruh section, lalu dipakai ulang
+        // oleh tiap film. Film yang belum punya review/watchlist/watch tetap
+        // dapat kunci di map dengan nilai nol.
+        $statsMap = $this->stats->statsMap($movies->modelKeys());
 
-        if ($section === 'most_watchlisted') {
-            return $movies->map(fn (Movie $movie) => array_merge(
-                MovieResource::make($movie)->resolve($request),
-                ['watchlist_count' => $movie->watchlists_count],
-            ))->all();
-        }
-
-        return MovieResource::collection($movies)->resolve($request);
+        return $movies
+            ->map(fn (Movie $movie) => MovieResource::withStats($movie, $statsMap))
+            ->map->resolve($request)
+            ->values()
+            ->all();
     }
 }

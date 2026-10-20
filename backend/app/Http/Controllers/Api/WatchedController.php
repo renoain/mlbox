@@ -10,12 +10,17 @@ use App\Http\Traits\ApiResponse;
 use App\Models\Watched;
 use App\Services\ActivityLogger;
 use App\Services\WatchlistService;
+use App\Services\WatchLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class WatchedController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(private readonly WatchLogService $log)
+    {
+    }
 
     public function index(Request $request): JsonResponse
     {
@@ -28,6 +33,7 @@ class WatchedController extends Controller
         StoreWatchedRequest $request,
         ActivityLogger $logger,
         WatchlistService $watchlists,
+        WatchLogService $log,
     ): JsonResponse {
         $movieId = $request->integer('movie_id');
 
@@ -35,15 +41,16 @@ class WatchedController extends Controller
             return $this->failure('Film sudah tercatat sebagai watched.', 409);
         }
 
-        $watched = Watched::create([
-            'user_id' => $request->user()->id,
-            'movie_id' => $movieId,
-            'watched_at' => $request->date('watched_at') ?? now()->toDateString(),
-        ]);
+        $watchedAt = ($request->date('watched_at') ?? now())->toDateString();
+
+        // Menandai watched juga membuat entri log pada tanggal yang sama,
+        // supaya film langsung muncul di halaman Log.
+        $result = $log->markWatched($request->user()->id, $movieId, $watchedAt);
+        $watched = $result['watched'];
 
         $logger->log($request->user()->id, ActivityLogger::TYPE_WATCHED, $watched->id, [
             'movie_id' => $movieId,
-            'watched_at' => $watched->watched_at->toDateString(),
+            'watched_at' => $watchedAt,
         ]);
 
         // Film yang sudah ditonton keluar dari watchlist.
@@ -69,7 +76,7 @@ class WatchedController extends Controller
 
     public function destroy(Request $request, int $movieId): JsonResponse
     {
-        $deleted = $request->user()->watcheds()->where('movie_id', $movieId)->delete();
+        $deleted = $this->log->unwatch($request->user()->id, $movieId);
 
         if ($deleted === 0) {
             return $this->failure('Film tidak tercatat sebagai watched.', 404);

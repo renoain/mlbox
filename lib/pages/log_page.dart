@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../repositories/diary_repository.dart';
 import '../widgets/main_bottom_nav.dart';
+import '../widgets/poster_image.dart';
 import '../widgets/rating_stars.dart';
 
 class LogPage extends ConsumerWidget {
@@ -163,13 +164,11 @@ class _DiaryTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(4),
                 color: AppTheme.surface,
-                image: movie.posterUrl != null
-                    ? DecorationImage(
-                        image: NetworkImage(movie.posterUrl!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
                 border: Border.all(color: Colors.white24, width: 1),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: PosterImage(url: movie.posterUrl, fit: BoxFit.cover),
               ),
             ),
             const SizedBox(width: 12),

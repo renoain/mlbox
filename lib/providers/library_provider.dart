@@ -1,16 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/movie.dart';
+import '../models/movie_list.dart';
 import '../models/review.dart';
 import '../repositories/diary_repository.dart';
-import '../repositories/review_repository.dart';
+import '../repositories/list_repository.dart';
 import '../repositories/watched_repository.dart';
 import '../repositories/watchlist_repository.dart';
+import 'movie_provider.dart';
 
 final watchlistRepositoryProvider = Provider((ref) => WatchlistRepository());
 final watchedRepositoryProvider = Provider((ref) => WatchedRepository());
-final reviewRepositoryProvider = Provider((ref) => ReviewRepository());
 final diaryRepositoryProvider = Provider((ref) => DiaryRepository());
+final listRepositoryProvider = Provider((ref) => ListRepository());
 
 // Daftar film di watchlist user yang sedang login.
 final watchlistProvider = FutureProvider<List<Movie>>((ref) async {
@@ -46,4 +48,10 @@ final myReviewsProvider = FutureProvider<List<Review>>((ref) async {
 final diaryProvider = FutureProvider<List<DiaryDay>>((ref) async {
   final repo = ref.watch(diaryRepositoryProvider);
   return repo.getDiary();
+});
+
+// Kurasi film milik user yang sedang login.
+final listsProvider = FutureProvider<List<MovieList>>((ref) async {
+  final repo = ref.watch(listRepositoryProvider);
+  return repo.getMyLists();
 });

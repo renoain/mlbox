@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\IncomingActivityController;
 use App\Http\Controllers\Api\LikeController;
 use App\Http\Controllers\Api\ListController;
 use App\Http\Controllers\Api\LogController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\MemberController;
 use App\Http\Controllers\Api\MovieController;
 use App\Http\Controllers\Api\NotificationController;
@@ -43,7 +44,17 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('throttle:movies')->group(function (): void {
     Route::get('movies', [MovieController::class, 'index']);
     Route::get('movies/{id}', [MovieController::class, 'show']);
+    // Review publik supaya guest juga bisa melihat review dari user lain.
+    Route::get('movies/{id}/reviews', [MovieController::class, 'reviews']);
     Route::get('genres', [GenreController::class, 'index']);
+});
+
+/*
+| Poster/backdrop disajikan lewat Laravel supaya response-nya punya header
+| CORS. Flutter Web butuh header ini untuk bisa memuat gambar.
+*/
+Route::middleware('throttle:media')->group(function (): void {
+    Route::get('media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 });
 
 /*

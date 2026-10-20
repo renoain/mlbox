@@ -38,7 +38,7 @@ class ProfileController extends Controller
     public function reviews(Request $request): JsonResponse
     {
         $query = $request->user()->reviews()
-            ->with(['movie.genres', 'likes' => fn ($q) => $q->where('user_id', $request->user()->id)])
+            ->with(['user', 'movie.genres', 'likes' => fn ($q) => $q->where('user_id', $request->user()->id)])
             ->withCount('likes');
 
         match ($request->string('sort')->toString()) {
