@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 
+import 'poster_image.dart';
+
 /// Kartu poster untuk grid Home: poster full, border tipis,
 /// judul di bawah dengan gradient gelap (sesuai desain Katalog Film).
 class PosterTile extends StatelessWidget {
   final String title;
   final String? posterUrl;
+  final double rating;
   final VoidCallback? onTap;
 
   const PosterTile({
     super.key,
     required this.title,
     this.posterUrl,
+    this.rating = 0,
     this.onTap,
   });
 
@@ -39,6 +43,12 @@ class PosterTile extends StatelessWidget {
                   ),
                 ),
               ),
+              if (rating > 0)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: _RatingBadge(rating: rating),
+                ),
               Positioned(
                 left: 6,
                 right: 6,
@@ -65,31 +75,38 @@ class PosterTile extends StatelessWidget {
   }
 
   Widget _buildPoster() {
-    final url = posterUrl;
-    if (url == null || url.isEmpty) return const _PosterPlaceholder();
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => const _PosterPlaceholder(),
-    );
+    return PosterImage(url: posterUrl, fit: BoxFit.cover);
   }
 }
 
-class _PosterPlaceholder extends StatelessWidget {
-  const _PosterPlaceholder();
+/// Lencana rating bintang di pojok poster.
+class _RatingBadge extends StatelessWidget {
+  final double rating;
+
+  const _RatingBadge({required this.rating});
 
   @override
   Widget build(BuildContext context) {
-    return const DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF2B3744), Color(0xFF1D252C)],
-        ),
+        color: Colors.black.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(3),
       ),
-      child: Center(
-        child: Icon(Icons.movie_rounded, color: Colors.white24, size: 32),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.star_rounded, color: Color(0xFF00E054), size: 11),
+          const SizedBox(width: 2),
+          Text(
+            rating.toStringAsFixed(1),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,69 +1,101 @@
+import '../core/api_config.dart';
+
 class Movie {
   final int id;
   final String title;
-  final String overview;
-  final String posterUrl;
-  final String releaseDate;
-  final String runtime;
-  final String genres;
+  final String? originalTitle;
+  final String? overview;
+  final String? posterUrl;
+  final String? backdropUrl;
+  final String? releaseDate;
+  final int? runtime;
+  final String? genres;
+  final List<String> cast;
+  final String? crew;
+  final String? language;
+  final String? country;
+  final bool isFeatured;
+  final double? averageRating;
+  final int reviewCount;
+  final int watchedCount;
+  final int watchlistCount;
 
   Movie({
     required this.id,
     required this.title,
-    required this.overview,
-    required this.posterUrl,
-    required this.releaseDate,
-    required this.runtime,
-    required this.genres,
+    this.originalTitle,
+    this.overview,
+    this.posterUrl,
+    this.backdropUrl,
+    this.releaseDate,
+    this.runtime,
+    this.genres,
+    this.cast = const [],
+    this.crew,
+    this.language,
+    this.country,
+    this.isFeatured = false,
+    this.averageRating,
+    this.reviewCount = 0,
+    this.watchedCount = 0,
+    this.watchlistCount = 0,
   });
 
-  // DATA DUMMY UNTUK DESAIN UI (Diambil dari movies.json)
-  static List<Movie> dummyMovies = [
-    Movie(
-      id: 1,
-      title: '127 Hours',
-      overview: 'Film ini mengisahkan Aron Ralston, seorang pendaki yang melakukan perjalanan sendirian di ngarai terpencil Utah...',
-      posterUrl:
-          'https://image.tmdb.org/t/p/w500/1.jpg', // Isi URL poster asli nanti
-      releaseDate: '2010-11-05',
-      runtime: '94',
-      genres: 'Biography, Drama, Adventure',
-    ),
-    Movie(
-      id: 2,
-      title: 'Annabelle',
-      overview: 'John dan Mia Form adalah pasangan muda yang sedang menantikan kelahiran anak pertama mereka...',
-      posterUrl: 'https://image.tmdb.org/t/p/w500/2.jpg',
-      releaseDate: '2014-10-03',
-      runtime: '99',
-      genres: 'Horror, Mystery, Thriller',
-    ),
-    Movie(
-      id: 3,
-      title: 'Aquaman',
-      overview: 'Arthur Curry mengetahui bahwa dirinya merupakan pewaris takhta kerajaan bawah laut Atlantis...',
-      posterUrl: 'https://image.tmdb.org/t/p/w500/3.jpg',
-      releaseDate: '2018-12-21',
-      runtime: '143',
-      genres: 'Action, Adventure, Fantasy',
-    ),
-    Movie(
-      id: 4,
-      title: 'Arrival',
-      overview: 'Kedatangan pesawat luar angkasa misterius di berbagai wilayah dunia memicu ketegangan internasional...',
-      posterUrl: 'https://image.tmdb.org/t/p/w500/4.jpg',
-      releaseDate: '2016-11-11',
-      runtime: '116',
-      genres: 'Science Fiction, Drama, Mystery',
-    ),
-    Movie(
-      id: 5,
-      title: 'Avatar',
-      overview: 'Jake Sully, seorang mantan marinir yang menggunakan kursi roda, dikirim ke Pandora...',
-      posterUrl: 'https://image.tmdb.org/t/p/w500/5.jpg',
-      releaseDate: '2009-12-18',
-      runtime: '162',
-      genres: 'Action, Adventure, Science Fiction',
-    ),
-  ];
+  factory Movie.fromJson(Map<String, dynamic> json) {
+    return Movie(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? 'Tanpa Judul',
+      originalTitle: json['original_title'],
+      overview: json['overview'],
+      // Backend mengirim URL lengkap
+      // (`http://.../api/media/posters/x.jpg`), tapi path relatif tetap
+      // diterima supaya aman kalau format payload berubah.
+      posterUrl: ApiConfig.resolveAssetUrl(
+        json['poster_url'] ?? json['poster'] ?? json['poster_path'],
+      ),
+      backdropUrl: ApiConfig.resolveAssetUrl(
+        json['backdrop_url'] ?? json['backdrop_path'],
+      ),
+      releaseDate: json['release_date'],
+      runtime: json['runtime'],
+      genres: json['genres'] is List
+          ? (json['genres'] as List)
+                .map((g) => g is Map ? g['name'] : g)
+                .where((g) => g != null)
+                .join(', ')
+          : json['genres']?.toString(),
+      cast: _parseCast(json['cast']),
+      crew: json['crew']?.toString(),
+      language: json['language']?.toString(),
+      country: json['country']?.toString(),
+      isFeatured: json['is_featured'] == true,
+      averageRating: (json['average_rating'] as num?)?.toDouble(),
+      reviewCount: json['review_count'] ?? 0,
+      watchedCount: json['watched_count'] ?? 0,
+      watchlistCount: json['watchlist_count'] ?? 0,
+    );
+  }
+
+  /// Cast disimpan backend sebagai teks yang dipisah koma
+  /// (`"Aktor A, Aktor B"`), tapi list juga diterima.
+  static List<String> _parseCast(dynamic value) {
+    if (value == null) return const [];
+
+    if (value is List) {
+      return value
+          .map(
+            (item) => item is Map ? item['name']?.toString() : item.toString(),
+          )
+          .whereType<String>()
+          .where((name) => name.trim().isNotEmpty)
+          .toList();
+    }
+
+    return value
+        .toString()
+        .split(',')
+        .map((name) => name.trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+  }
 }

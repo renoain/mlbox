@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'poster_image.dart';
+
 class MovieCard extends StatelessWidget {
   final String title;
-  final String posterUrl;
+  final String? posterUrl;
   final double rating;
   final VoidCallback? onTap;
 
@@ -26,20 +28,7 @@ class MovieCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
               child: AspectRatio(
                 aspectRatio: 2 / 3,
-                child: Image.network(
-                  posterUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: const Color(0xFF1D252C),
-                      child: const Icon(
-                        Icons.movie_rounded,
-                        color: Colors.white24,
-                        size: 32,
-                      ),
-                    );
-                  },
-                ),
+                child: PosterImage(url: posterUrl, fit: BoxFit.cover),
               ),
             ),
           ),
@@ -55,23 +44,21 @@ class MovieCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          Row(
-            children: [
-              const Icon(
-                Icons.star_rounded,
-                color: Color(0xFF00E054),
-                size: 14,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                rating.toStringAsFixed(1),
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
+          if (rating > 0)
+            Row(
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  color: Color(0xFF00E054),
+                  size: 14,
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 4),
+                Text(
+                  rating.toStringAsFixed(1),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ],
+            ),
         ],
       ),
     );

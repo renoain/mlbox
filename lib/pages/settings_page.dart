@@ -1,27 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
+import '../providers/auth_provider.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
+  void _notAvailable(BuildContext context) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Fitur belum tersedia.')));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLoggedIn = ref.watch(authProvider).isAuthenticated;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Settings'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(), // Kembali ke profil
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
         ),
       ),
       body: ListView(
         children: [
           _buildSectionHeader('Account'),
-          _buildListTile(context, Icons.person_outline, 'Edit Profile'),
-          _buildListTile(context, Icons.lock_outline, 'Change Password'),
+          _buildListTile(
+            context,
+            Icons.person_outline,
+            'Edit Profile',
+            onTap: () => _notAvailable(context),
+          ),
+          _buildListTile(
+            context,
+            Icons.lock_outline,
+            'Change Password',
+            onTap: () => _notAvailable(context),
+          ),
 
           const Divider(color: AppTheme.surface),
 
@@ -31,8 +56,15 @@ class SettingsPage extends StatelessWidget {
             Icons.language,
             'Language',
             trailing: 'English',
+            onTap: () => _notAvailable(context),
           ),
-          _buildListTile(context, Icons.dark_mode, 'Theme', trailing: 'Dark'),
+          _buildListTile(
+            context,
+            Icons.dark_mode,
+            'Theme',
+            trailing: 'Dark',
+            onTap: () => _notAvailable(context),
+          ),
 
           const Divider(color: AppTheme.surface),
 
@@ -42,26 +74,35 @@ class SettingsPage extends StatelessWidget {
             Icons.info_outline,
             'About MLBox',
             trailing: 'v1.0.0',
+            onTap: () => _notAvailable(context),
           ),
-          _buildListTile(context, Icons.help_outline, 'Help & Support'),
+          _buildListTile(
+            context,
+            Icons.help_outline,
+            'Help & Support',
+            onTap: () => _notAvailable(context),
+          ),
 
-          const SizedBox(height: 30),
-
-          // Tombol Logout
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.surface, // Tombol abu-abu gelap
-                foregroundColor: AppTheme.error, // Teks merah
+          if (isLoggedIn) ...[
+            const SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.surface,
+                  foregroundColor: AppTheme.error,
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    context.go('/login');
+                  }
+                },
+                child: const Text('LOG OUT'),
               ),
-              onPressed: () {
-                // Nanti teman Logic (Anda/Orang 1) yang mengurus fungsi logout
-                context.go('/home');
-              },
-              child: const Text('LOG OUT'),
             ),
-          ),
+          ],
           const SizedBox(height: 40),
         ],
       ),
@@ -88,6 +129,7 @@ class SettingsPage extends StatelessWidget {
     IconData icon,
     String title, {
     String? trailing,
+    VoidCallback? onTap,
   }) {
     return ListTile(
       leading: Icon(icon, color: AppTheme.textSecondary),
@@ -98,9 +140,7 @@ class SettingsPage extends StatelessWidget {
               style: const TextStyle(color: AppTheme.textSecondary),
             )
           : const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
-      onTap: () {
-        // Aksi klik nanti
-      },
+      onTap: onTap,
     );
   }
 }

@@ -1,104 +1,156 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/app_theme.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/main_bottom_nav.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
+  ConsumerState<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends ConsumerState<LoginPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showMessage('Email dan password wajib diisi.');
+      return;
+    }
+
+    final ok = await ref.read(authProvider.notifier).login(email, password);
+
+    if (!mounted) return;
+
+    if (ok) {
+      context.go('/home');
+    } else {
+      final message = ref.read(authProvider).errorMessage ?? 'Login gagal.';
+      _showMessage(message);
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(authProvider).isLoading;
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: const Color(0xFF14181C),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.pop(), // Kembali ke halaman sebelumnya
-        ),
-        elevation: 0,
         backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
-              // --- Judul ---
+              const SizedBox(height: 40),
               const Text(
-                'Sign In',
-                textAlign: TextAlign.center,
+                'Sign in to MLBox',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Welcome back to MLBox',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-              ),
-              const SizedBox(height: 40),
-
-              // --- Form Email ---
-              const TextField(
+              const SizedBox(height: 24),
+              TextField(
+                controller: _emailController,
+                enabled: !isLoading,
                 keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Email address',
-                  prefixIcon: Icon(
-                    Icons.email_outlined,
-                    color: AppTheme.textSecondary,
+                  hintText: 'Email',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: const Color(0xFF1C252E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // --- Form Password ---
-              const TextField(
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passwordController,
+                enabled: !isLoading,
                 obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
                   hintText: 'Password',
-                  prefixIcon: Icon(
-                    Icons.lock_outline,
-                    color: AppTheme.textSecondary,
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: const Color(0xFF1C252E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-
-              // --- Tombol Login ---
-              ElevatedButton(
-                onPressed: () {
-                  // Nanti Lead yang akan menyambungkan ini ke API
-                  // Untuk sekarang, kita lempar saja ke home
-                  context.go('/home');
-                },
-                child: const Text('SIGN IN'),
-              ),
-              const SizedBox(height: 20),
-
-              // --- Link ke Register ---
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    "Don't have an account? ",
-                    style: TextStyle(color: AppTheme.textSecondary),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      context.push('/register'); // Arahkan ke halaman register
-                    },
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () => context.push('/register'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3B444F),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(120, 50),
                     ),
+                    child: const Text('Join MLBox'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: isLoading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00E054),
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size(88, 50),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
+                          )
+                        : const Text('Go'),
                   ),
                 ],
               ),
@@ -106,6 +158,8 @@ class LoginPage extends StatelessWidget {
           ),
         ),
       ),
+      // Navbar Guest (Users) index 0
+      bottomNavigationBar: const MainBottomNav(currentIndex: 0),
     );
   }
 }
