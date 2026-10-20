@@ -20,6 +20,18 @@ class MovieSeeder extends Seeder
             return;
         }
 
+        $sourcePosters = base_path('movies/posterfilm');
+        $targetPosters = storage_path('app/public/posters');
+        if (File::isDirectory($sourcePosters)) {
+            File::ensureDirectoryExists($targetPosters);
+            foreach (File::files($sourcePosters) as $file) {
+                $dest = $targetPosters.DIRECTORY_SEPARATOR.$file->getFilename();
+                if (! File::exists($dest)) {
+                    File::copy($file->getPathname(), $dest);
+                }
+            }
+        }
+
         $movies = json_decode(File::get($path), true, 512, JSON_THROW_ON_ERROR);
         $genres = Genre::query()->get()->keyBy('name');
 
