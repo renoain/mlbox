@@ -20,15 +20,15 @@ class LogPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('Log')),
-      body: isLoggedIn ? const _LogBody() : const _GuestMessage(),
+      body: isLoggedIn ? const LogBody() : const _GuestMessage(),
       // Penanda menu: Log = index 3 untuk user login, Users = index 0 untuk guest.
-      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 3 : 0),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 3),
     );
   }
 }
 
-class _LogBody extends ConsumerWidget {
-  const _LogBody();
+class LogBody extends ConsumerWidget {
+  const LogBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

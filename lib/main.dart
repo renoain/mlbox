@@ -3,14 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/app_theme.dart';
+import 'pages/activity_page.dart';
 import 'pages/splash_page.dart';
 import 'pages/home_page.dart';
 import 'pages/search_page.dart';
 import 'pages/watchlist_page.dart';
+import 'pages/watched_page.dart';
 import 'pages/log_page.dart';
 import 'pages/profile_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/movie_detail_page.dart';
+import 'pages/likes_page.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/review_form_page.dart';
@@ -26,6 +29,12 @@ final appRouter = GoRouter(
       builder: (context, state) => const WatchlistPage(),
     ),
     GoRoute(path: '/log', builder: (context, state) => const LogPage()),
+    GoRoute(
+      path: '/activity',
+      builder: (context, state) => const ActivityPage(),
+    ),
+    GoRoute(path: '/watched', builder: (context, state) => const WatchedPage()),
+    GoRoute(path: '/likes', builder: (context, state) => const LikesPage()),
     GoRoute(path: '/profile', builder: (context, state) => const ProfilePage()),
     GoRoute(
       path: '/settings',

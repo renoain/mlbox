@@ -19,15 +19,15 @@ class WatchlistPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('Watchlist')),
-      body: isLoggedIn ? const _WatchlistBody() : const _GuestMessage(),
+      body: isLoggedIn ? const WatchlistBody() : const _GuestMessage(),
       // Penanda menu: Watchlist = index 2 untuk user login, Users = index 0 untuk guest.
-      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 2 : 0),
+      bottomNavigationBar: const MainBottomNav(currentIndex: 3),
     );
   }
 }
 
-class _WatchlistBody extends ConsumerWidget {
-  const _WatchlistBody();
+class WatchlistBody extends ConsumerWidget {
+  const WatchlistBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

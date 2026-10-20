@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/movie.dart';
-import '../providers/auth_provider.dart';
 import '../providers/movie_provider.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/movie_card.dart';
@@ -32,7 +31,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoggedIn = ref.watch(authProvider).isAuthenticated;
     final moviesAsync = ref.watch(moviesProvider);
 
     return Scaffold(
@@ -118,7 +116,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ),
         ),
       ),
-      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 1 : 2),
+      bottomNavigationBar: MainBottomNav(currentIndex: 1),
     );
   }
 

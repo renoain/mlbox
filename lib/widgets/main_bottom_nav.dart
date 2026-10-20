@@ -3,86 +3,180 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
-import '../providers/auth_provider.dart'; // <-- Panggil AuthProvider
+import '../providers/auth_provider.dart';
+import 'movie_picker_sheet.dart';
 
+/// Bottom navigation dengan lima menu:
+///
+/// 0 = Home, 1 = Search, 2 = Quick Review, 3 = Activity, 4 = Profile.
+///
+/// Ikon aktif memakai gaya *filled* dan dibungkus kapsul biru gelap.
+/// Ikon tidak aktif memakai gaya *outline* berwarna abu-abu.
+/// Tombol tengah (Quick Review) selalu hijau dan tidak memakai kapsul.
 class MainBottomNav extends ConsumerWidget {
   final int currentIndex;
 
   const MainBottomNav({super.key, required this.currentIndex});
 
+  /// Warna ikon untuk halaman yang sedang aktif.
+  static const Color activeColor = Color(0xFF40BCF4);
+
+  /// Warna ikon untuk halaman lain.
+  static const Color inactiveColor = Color(0xFF9AB5C4);
+
+  /// Warna latar kapsul ikon aktif.
+  static const Color capsuleColor = Color(0xFF1A3B4F);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Mengecek apakah user sudah login atau belum
-    final isLoggedIn = ref.watch(authProvider).isAuthenticated;
+    return Container(
+      decoration: BoxDecoration(
+        // Gradasi dari transparan di atas ke gelap pekat di bawah, supaya
+        // navbar terlihat melayang di atas konten.
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, AppTheme.background],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 10,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: BottomNavigationBar(
+          backgroundColor: Colors.transparent,
+          selectedItemColor: activeColor,
+          unselectedItemColor: inactiveColor,
+          type: BottomNavigationBarType.fixed,
+          currentIndex: currentIndex,
+          elevation: 0,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          onTap: (index) => _onTap(context, ref, index),
+          items: [
+            BottomNavigationBarItem(
+              icon: _CapsuleIcon(
+                activeIcon: Icons.home,
+                inactiveIcon: Icons.home_outlined,
+                isActive: currentIndex == 0,
+              ),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: _CapsuleIcon(
+                activeIcon: Icons.search,
+                inactiveIcon: Icons.search,
+                isActive: currentIndex == 1,
+              ),
+              label: 'Search',
+            ),
+            // Tombol tengah: warna hijau statis, lebih besar, tanpa kapsul.
+            BottomNavigationBarItem(
+              icon: const Icon(
+                Icons.add_circle,
+                color: AppTheme.primary,
+                size: 32,
+              ),
+              label: 'Review',
+            ),
+            BottomNavigationBarItem(
+              icon: _CapsuleIcon(
+                activeIcon: Icons.bolt,
+                inactiveIcon: Icons.bolt_outlined,
+                isActive: currentIndex == 3,
+              ),
+              label: 'Activity',
+            ),
+            BottomNavigationBarItem(
+              icon: _CapsuleIcon(
+                activeIcon: Icons.person,
+                inactiveIcon: Icons.person_outline,
+                isActive: currentIndex == 4,
+              ),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return SafeArea(
-      top: false,
-      child: BottomNavigationBar(
-        backgroundColor: AppTheme.surface,
-        selectedItemColor: AppTheme.primary,
-        unselectedItemColor: AppTheme.textSecondary,
-        type: BottomNavigationBarType.fixed,
-        currentIndex: currentIndex,
-        elevation: 0,
-        onTap: (index) {
-          if (!isLoggedIn) {
-            // NAVBAR GUEST (3 Ikon)
-            if (index == 0) context.go('/login');
-            if (index == 1) context.go('/home');
-            if (index == 2) context.go('/search');
-          } else {
-            // NAVBAR USER LOGIN (5 Ikon)
-            if (index == 0) context.go('/home');
-            if (index == 1) context.go('/search');
-            if (index == 2) context.go('/watchlist');
-            if (index == 3) context.go('/log');
-            if (index == 4) context.go('/profile');
-          }
-        },
-        items: isLoggedIn
-            ? const [
-                // 5 Ikon untuk yang sudah login
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.movie_outlined),
-                  activeIcon: Icon(Icons.movie),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.search),
-                  label: 'Search',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.bookmark_border),
-                  activeIcon: Icon(Icons.bookmark),
-                  label: 'Watchlist',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.add_circle_outline),
-                  label: 'Log',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline),
-                  activeIcon: Icon(Icons.person),
-                  label: 'Profile',
-                ),
-              ]
-            : const [
-                // 3 Ikon untuk Guest (Belum Login)
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.people_outline),
-                  activeIcon: Icon(Icons.people),
-                  label: 'Users',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.movie_outlined),
-                  activeIcon: Icon(Icons.movie),
-                  label: 'Films',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.search),
-                  label: 'Search',
-                ),
-              ],
+  Future<void> _onTap(BuildContext context, WidgetRef ref, int index) async {
+    switch (index) {
+      case 0:
+        context.go('/home');
+      case 1:
+        context.go('/search');
+      case 2:
+        await _openQuickReview(context, ref);
+      case 3:
+        context.go('/activity');
+      case 4:
+        context.go('/profile');
+    }
+  }
+
+  /// Quick Review: pilih film, lalu langsung buka form reviewnya.
+  Future<void> _openQuickReview(BuildContext context, WidgetRef ref) async {
+    if (!ref.read(authProvider).isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Masuk dulu untuk menulis review.'),
+          action: SnackBarAction(
+            label: 'Masuk',
+            onPressed: () => context.push('/login'),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final movie = await showMoviePicker(
+      context,
+      title: 'Pilih film untuk di-review',
+    );
+
+    if (movie == null || !context.mounted) return;
+
+    context.push('/movie/${movie.id}/review');
+  }
+}
+
+/// Ikon navbar dengan kapsul di belakang saat aktif.
+///
+/// Kapsulnya memakai `AnimatedContainer` supaya transisi warnanya halus.
+class _CapsuleIcon extends StatelessWidget {
+  final IconData activeIcon;
+  final IconData inactiveIcon;
+  final bool isActive;
+
+  const _CapsuleIcon({
+    required this.activeIcon,
+    required this.inactiveIcon,
+    required this.isActive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: isActive ? MainBottomNav.capsuleColor : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Icon(
+        isActive ? activeIcon : inactiveIcon,
+        color: isActive
+            ? MainBottomNav.activeColor
+            : MainBottomNav.inactiveColor,
+        size: 24,
       ),
     );
   }

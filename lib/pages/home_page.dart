@@ -32,8 +32,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoggedIn = ref.watch(authProvider).isAuthenticated;
-
     return Scaffold(
       backgroundColor: _bg,
       body: Column(
@@ -72,7 +70,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           Expanded(child: _buildTab(ref)),
         ],
       ),
-      bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 0 : 1),
+      bottomNavigationBar: MainBottomNav(currentIndex: 0),
     );
   }
 
