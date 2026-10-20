@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../models/movie.dart';
 import '../providers/auth_provider.dart';
 import '../providers/movie_provider.dart';
+import '../repositories/home_repository.dart';
 import '../widgets/home_tab_bar.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/poster_tile.dart';
@@ -26,7 +27,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final isLoggedIn = ref.watch(authProvider).isAuthenticated;
-    final moviesAsync = ref.watch(moviesProvider);
 
     return Scaffold(
       backgroundColor: _bg,
@@ -65,12 +65,111 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           Expanded(
             child: _tabIndex == 0
-                ? _buildFilmsTab(moviesAsync)
+                ? (isLoggedIn
+                      ? _buildHomeTab(ref.watch(homeDataProvider))
+                      : _buildFilmsTab(ref.watch(moviesProvider)))
                 : _buildComingSoonTab(_tabs[_tabIndex]),
           ),
         ],
       ),
       bottomNavigationBar: MainBottomNav(currentIndex: isLoggedIn ? 0 : 1),
+    );
+  }
+
+  Widget _buildHomeTab(AsyncValue<HomeData> homeAsync) {
+    return homeAsync.when(
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: Color(0xFF00E054)),
+      ),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_rounded,
+                color: Colors.white54,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Gagal memuat beranda',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(homeDataProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E054),
+                  foregroundColor: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (home) {
+        final sections = <(String, List<Movie>)>[
+          ('Featured', home.featured),
+          ('Latest', home.latest),
+          ('Top Rated', home.topRated),
+          ('Most Watched', home.mostWatched),
+          ('Most Watchlisted', home.mostWatchlisted),
+          ('Explore', home.explore),
+        ].where((s) => s.$2.isNotEmpty).toList();
+
+        if (sections.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 24),
+          children: [
+            for (final (title, movies) in sections) ...[
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildSectionRow(movies),
+              const SizedBox(height: 24),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionRow(List<Movie> movies) {
+    return SizedBox(
+      height: 180,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: movies.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final movie = movies[index];
+          return SizedBox(
+            width: 120,
+            child: PosterTile(
+              title: movie.title,
+              posterUrl: movie.posterUrl,
+              onTap: () => context.push('/movie/${movie.id}'),
+            ),
+          );
+        },
+      ),
     );
   }
 

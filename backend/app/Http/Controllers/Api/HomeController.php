@@ -38,16 +38,20 @@ class HomeController extends Controller
      */
     private function mapSection(string $section, $movies, Request $request): array
     {
+        // Catatan: JsonResource::resolve() tidak menggabungkan additional() pada
+        // versi Laravel ini, jadi angka agregat di-merge eksplisit di sini.
         if ($section === 'most_watched') {
-            return $movies->map(fn (Movie $movie) => MovieResource::make($movie)->additional([
-                'watched_count' => $movie->watcheds_count,
-            ])->resolve($request))->all();
+            return $movies->map(fn (Movie $movie) => array_merge(
+                MovieResource::make($movie)->resolve($request),
+                ['watched_count' => $movie->watcheds_count],
+            ))->all();
         }
 
         if ($section === 'most_watchlisted') {
-            return $movies->map(fn (Movie $movie) => MovieResource::make($movie)->additional([
-                'watchlist_count' => $movie->watchlists_count,
-            ])->resolve($request))->all();
+            return $movies->map(fn (Movie $movie) => array_merge(
+                MovieResource::make($movie)->resolve($request),
+                ['watchlist_count' => $movie->watchlists_count],
+            ))->all();
         }
 
         return MovieResource::collection($movies)->resolve($request);
