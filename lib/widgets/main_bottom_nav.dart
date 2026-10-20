@@ -35,12 +35,7 @@ class MainBottomNav extends ConsumerWidget {
             if (index == 0) context.go('/home');
             if (index == 1) context.go('/search');
             if (index == 2) context.go('/watchlist');
-            if (index == 3) {
-              // Fitur Log belum tersedia pada tahap ini.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur Log belum tersedia.')),
-              );
-            }
+            if (index == 3) context.go('/log');
             if (index == 4) context.go('/profile');
           }
         },

@@ -19,7 +19,7 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
 - Tanggal update: 2026-10-20
 - Branch aktif: `feat/review-rating-api`
 - Branch `main`: sudah berisi Tahap 1, 2, 3
-- Status: Tahap 1–4 sudah di `main`; Tahap 5 (rating di detail) selesai, belum di-commit
+- Status: Tahap 1–5 sudah di `main`; Tahap 6 (halaman Log) selesai, belum di-commit
 
 ---
 
@@ -92,6 +92,18 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
   `review_count`, dan field per-user.
 - Catatan: `backend/` adalah **git repo terpisah** (bukan submodule); commit di
   dalamnya (`de0987a`), parent mencatat gitlink.
+
+### Tahap 6 — Halaman Log / Diary (API)
+- `diary_repository.dart` (baru): `DiaryDay` + `DiaryEntry` + `getDiary()`
+  -> `GET /diary` (dikelompokkan per tanggal).
+- `library_provider.dart`: `diaryRepositoryProvider` + `diaryProvider`.
+- `log_page.dart` (baru): daftar entri diary per tanggal (poster, judul,
+  rating, catatan), state loading/error/empty + guard guest.
+- `main.dart`: rute `/log` ditambahkan.
+- `main_bottom_nav.dart`: menu **Log** (index 3) kini `go('/log')` — bukan lagi
+  SnackBar "belum tersedia".
+- Catatan: belum ada alur membuat diary dari UI (`POST /diary`), jadi halaman
+  menampilkan empty state sampai alur "log film" dibuat.
 
 ---
 
