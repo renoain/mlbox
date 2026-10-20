@@ -19,7 +19,7 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
 - Tanggal update: 2026-10-20
 - Branch aktif: `feat/review-rating-api`
 - Branch `main`: sudah berisi Tahap 1, 2, 3
-- Status: Tahap 1–3 selesai & tervalidasi; Tahap 4 (Review & Rating) belum dimulai
+- Status: Tahap 1–4 selesai & tervalidasi (Tahap 4 belum di-merge ke main)
 
 ---
 
@@ -60,6 +60,17 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
 - `WatchlistPage` menampilkan data API (loading/error/empty); guest diminta login.
 - `MovieDetailPage`: tombol WATCHLIST/WATCHED memanggil API, menampilkan status aktif.
 - **Perilaku backend penting**: menandai `watched` otomatis menghapus film dari watchlist.
+
+### Tahap 4 — Review & Rating (API)
+- Repository baru: `review_repository.dart` (`createReview`, `getMyReviews`).
+- Provider baru di `library_provider.dart`: `myReviewsProvider`, `reviewRepositoryProvider`.
+- `ReviewFormPage` disambungkan ke `POST /reviews` (bukan simulasi lagi),
+  dengan loading state, error handling, dan `ref.invalidate(myReviewsProvider)`.
+- Model `Review.fromJson` disesuaikan kontrak `ReviewResource` (`user_name`,
+  `movie_id`, `updated_at`); fallback nama `Anonymous`.
+- Hapus method usang `MovieRepository.getMovieReviews` + `movieReviewsProvider`
+  (menargetkan `GET /movies/{id}/reviews` yang **tidak ada** di backend = bug laten).
+- Tombol "TULIS REVIEW" di Detail Film kini guard guest -> SnackBar + "Masuk".
 
 ---
 
@@ -113,7 +124,7 @@ Indeks `MainBottomNav`:
 - `GET/POST /watched`, `PATCH/DELETE /watched/{movieId}`
 
 Belum dipakai (kandidat berikutnya):
-- `GET/POST/PUT/DELETE /reviews`
+- `GET/POST/PUT/DELETE /reviews` (sebagian: POST + GET sudah dipakai Tahap 4)
 - `POST /movies/{id}/rate`, `DELETE /movies/{id}/rate`
 - `GET /profile`, `/profile/stats`, `/profile/reviews`
 - `GET /home`, `GET /feed`, `/diary`, `/lists`, `/favorites`, `/likes`, `/tags`, `/notifications`
@@ -133,14 +144,17 @@ Belum dipakai (kandidat berikutnya):
 
 ## Langkah Selanjutnya (TODO)
 
-1. **Tahap 4 — Review & Rating API** (branch `feat/review-rating-api`):
-   - `review_form_page.dart` masih `Future.delayed` -> sambungkan ke `POST /reviews`
-     (dan opsional `POST /movies/{id}/rate`).
-   - Tampilkan daftar review di Detail Film (`movieReviewsProvider` sudah ada).
-2. Sambungkan `GET /home` bila ingin beranda khusus user login.
-3. Rapikan `lib/pages/settings_page.dart` (belum punya rute, masih logout palsu).
-4. Uji Android (verifikasi baseUrl `10.0.2.2`; HP fisik perlu IP LAN).
-5. Sinkronkan `docs/PROGRESS.md` dengan struktur aktual.
+1. Merge `feat/review-rating-api` (Tahap 4) ke `main`.
+2. Tampilkan daftar review di Detail Film — butuh endpoint publik review per film
+   (backend belum punya; perlu `GET /movies/{id}/reviews` bila diinginkan).
+3. Sambungkan `GET /home` bila ingin beranda khusus user login.
+4. Rapikan `lib/pages/settings_page.dart` (belum punya rute, masih logout palsu).
+5. Uji Android (verifikasi baseUrl `10.0.2.2`; HP fisik perlu IP LAN).
+6. Sinkronkan `docs/PROGRESS.md` dengan struktur aktual.
+
+> Catatan backend: `ReviewResource.user_name` hanya terisi bila relasi `user`
+> di-eager-load. `ReviewController@index`/`store` belum memuatnya, jadi nama
+> user tampil kosong (fallback `Anonymous` di app).
 
 ---
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
+import '../providers/library_provider.dart';
 import '../widgets/rating_stars.dart';
 
 class ReviewFormPage extends ConsumerStatefulWidget {
@@ -36,18 +37,35 @@ class _ReviewFormPageState extends ConsumerState<ReviewFormPage> {
 
     setState(() => _isLoading = true);
 
-    // SIMULASI PENGIRIMAN DATA (Nanti tinggal diganti dengan panggilan API)
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Review berhasil disimpan!'),
-          backgroundColor: AppTheme.primary,
-        ),
+    try {
+      final repo = ref.read(reviewRepositoryProvider);
+      await repo.createReview(
+        movieId: widget.movieId,
+        rating: _currentRating,
+        content: _reviewController.text,
       );
-      context.pop(); // Kembali ke halaman detail film
+      ref.invalidate(myReviewsProvider);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review berhasil disimpan!'),
+            backgroundColor: AppTheme.primary,
+          ),
+        );
+        context.pop(); // Kembali ke halaman detail film
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 

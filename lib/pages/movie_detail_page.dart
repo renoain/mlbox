@@ -157,6 +157,20 @@ class MovieDetailPage extends ConsumerWidget {
                       // Tombol Tulis Review
                       OutlinedButton.icon(
                         onPressed: () {
+                          if (!ref.read(authProvider).isAuthenticated) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  'Masuk dulu untuk menulis review.',
+                                ),
+                                action: SnackBarAction(
+                                  label: 'Masuk',
+                                  onPressed: () => context.push('/login'),
+                                ),
+                              ),
+                            );
+                            return;
+                          }
                           // Pindah ke form review, bawa ID film
                           context.push('/movie/${movie.id}/review');
                         },
