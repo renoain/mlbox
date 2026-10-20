@@ -312,37 +312,189 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _logFilm() async {
+    if (!_isLoggedIn) {
+      _requireLogin();
+      return;
+    }
+
+    final result = await showDialog<_LogFilmData>(
+      context: context,
+      builder: (context) => const _LogFilmDialog(),
+    );
+
+    if (result == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final repo = ref.read(diaryRepositoryProvider);
+      await repo.createDiary(
+        movieId: widget.movieId,
+        watchedDate: result.watchedDate,
+        note: result.note,
+      );
+      // Backend otomatis mengeluarkan film dari watchlist saat di-log.
+      ref.invalidate(diaryProvider);
+      ref.invalidate(watchlistProvider);
+      if (mounted) _showMessage('Film masuk ke log.');
+    } catch (e) {
+      if (mounted) {
+        _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final inWatchlist = ref.watch(isInWatchlistProvider(widget.movieId));
     final isWatched = ref.watch(isWatchedProvider(widget.movieId));
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _busy ? null : () => _toggleWatchlist(inWatchlist),
-            icon: Icon(inWatchlist ? Icons.check : Icons.add, size: 18),
-            label: Text(inWatchlist ? 'IN WATCHLIST' : 'WATCHLIST'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.black,
-              minimumSize: const Size(0, 50),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _busy ? null : () => _toggleWatchlist(inWatchlist),
+                icon: Icon(inWatchlist ? Icons.check : Icons.add, size: 18),
+                label: Text(inWatchlist ? 'IN WATCHLIST' : 'WATCHLIST'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(0, 50),
+                ),
+              ),
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _busy ? null : () => _toggleWatched(isWatched),
+                icon: Icon(isWatched ? Icons.check : Icons.done, size: 18),
+                label: Text(isWatched ? 'WATCHED' : 'MARK WATCHED'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B444F),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 50),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _busy ? null : _logFilm,
+          icon: const Icon(Icons.calendar_today, size: 18),
+          label: const Text('LOG FILM'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Colors.white24),
+            minimumSize: const Size(double.infinity, 50),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _busy ? null : () => _toggleWatched(isWatched),
-            icon: Icon(isWatched ? Icons.check : Icons.done, size: 18),
-            label: Text(isWatched ? 'WATCHED' : 'MARK WATCHED'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B444F),
+      ],
+    );
+  }
+}
+
+class _LogFilmData {
+  final String? watchedDate;
+  final String? note;
+
+  _LogFilmData({this.watchedDate, this.note});
+}
+
+class _LogFilmDialog extends StatefulWidget {
+  const _LogFilmDialog();
+
+  @override
+  State<_LogFilmDialog> createState() => _LogFilmDialogState();
+}
+
+class _LogFilmDialogState extends State<_LogFilmDialog> {
+  final _noteController = TextEditingController();
+  DateTime _date = DateTime.now();
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  String get _formattedDate =>
+      '${_date.year.toString().padLeft(4, '0')}-'
+      '${_date.month.toString().padLeft(2, '0')}-'
+      '${_date.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppTheme.surface,
+      title: const Text('Log Film', style: TextStyle(color: Colors.white)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Tanggal tonton',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _pickDate,
+            icon: const Icon(Icons.calendar_today, size: 16),
+            label: Text(_formattedDate),
+            style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              minimumSize: const Size(0, 50),
+              side: const BorderSide(color: Colors.white24),
+              minimumSize: const Size(0, 44),
             ),
           ),
+          const SizedBox(height: 16),
+          const Text(
+            'Catatan (opsional)',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _noteController,
+            maxLines: 3,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: 'Tulis catatan singkat...',
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('BATAL'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(
+            _LogFilmData(
+              watchedDate: _formattedDate,
+              note: _noteController.text,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primary,
+            foregroundColor: Colors.black,
+            minimumSize: const Size(0, 44),
+          ),
+          child: const Text('SIMPAN'),
         ),
       ],
     );

@@ -62,4 +62,24 @@ class DiaryRepository {
       throw Exception(e.response?.data['message'] ?? 'Gagal memuat log');
     }
   }
+
+  /// Catat film ke log/diary. Tanggal opsional (default hari ini).
+  Future<void> createDiary({
+    required int movieId,
+    String? watchedDate,
+    String? note,
+  }) async {
+    try {
+      await _api.dio.post(
+        '/diary',
+        data: {
+          'movie_id': movieId,
+          'watched_date': ?watchedDate,
+          if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+        },
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal menyimpan log');
+    }
+  }
 }

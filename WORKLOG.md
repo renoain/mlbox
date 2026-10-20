@@ -19,7 +19,7 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
 - Tanggal update: 2026-10-20
 - Branch aktif: `feat/review-rating-api`
 - Branch `main`: sudah berisi Tahap 1, 2, 3
-- Status: Tahap 1–5 sudah di `main`; Tahap 6 (halaman Log) selesai, belum di-commit
+- Status: Tahap 1–6 sudah di `main`; Tahap 7 (alur log film) selesai, belum di-commit
 
 ---
 
@@ -104,6 +104,15 @@ berikutnya tahu **sudah dikerjakan apa** dan **lanjut ke mana**.
   SnackBar "belum tersedia".
 - Catatan: belum ada alur membuat diary dari UI (`POST /diary`), jadi halaman
   menampilkan empty state sampai alur "log film" dibuat.
+
+### Tahap 7 — Alur Log Film (POST /diary)
+- `diary_repository.dart`: `createDiary(movieId, watchedDate?, note?)` -> `POST /diary`.
+- `movie_detail_page.dart`: tombol **LOG FILM** (full-width) membuka dialog
+  (pilih tanggal via date picker + catatan opsional) -> `createDiary`, lalu
+  invalidate `diaryProvider` + `watchlistProvider`.
+- Alur terverifikasi: log film otomatis mengeluarkan film dari watchlist
+  (backend `WatchlistService::remove`); duplikat tanggal sama -> 409 (error SnackBar).
+- Kini halaman Log bisa terisi dari UI.
 
 ---
 
