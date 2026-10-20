@@ -19,6 +19,22 @@ class ListRepository {
     }
   }
 
+  /// Semua list yang ditandai publik (`GET /api/lists?scope=public`).
+  Future<List<MovieList>> getPublicLists() async {
+    try {
+      final response = await _api.dio.get(
+        '/lists',
+        queryParameters: {'scope': 'public'},
+      );
+      final List data = response.data['data'] ?? [];
+      return data
+          .map((json) => MovieList.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Gagal memuat daftar');
+    }
+  }
+
   /// Buat kurasi baru.
   Future<MovieList> createList({
     required String title,

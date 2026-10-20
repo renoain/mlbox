@@ -7,123 +7,213 @@ import '../providers/library_provider.dart';
 
 /// Tab "Lists": daftar kurasi film milik user yang sedang login.
 ///
-/// Dipakai bersama oleh halaman Home dan halaman Profile supaya tampilannya
-/// sama persis di kedua tempat.
-class ListsTab extends ConsumerWidget {
+/// Ada dua cakupan: list milik sendiri, dan semua list yang publik. Dipakai
+/// bersama oleh halaman Home dan halaman Profile supaya tampilannya sama
+/// persis di kedua tempat.
+class ListsTab extends ConsumerStatefulWidget {
   const ListsTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final listsAsync = ref.watch(listsProvider);
+  ConsumerState<ListsTab> createState() => _ListsTabState();
+}
 
-    return listsAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: AppTheme.primary),
+class _ListsTabState extends ConsumerState<ListsTab> {
+  /// true = menampilkan list publik, false = list milik sendiri.
+  bool _showPublic = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final listsAsync = ref.watch(
+      _showPublic ? publicListsProvider : listsProvider,
+    );
+
+    return Column(
+      children: [
+        _ScopeToggle(
+          showPublic: _showPublic,
+          onChanged: (value) => setState(() => _showPublic = value),
+        ),
+        Expanded(
+          child: listsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            ),
+            error: (error, stackTrace) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_off_rounded,
+                      color: Colors.white54,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Gagal memuat daftar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      error.toString().replaceFirst('Exception: ', ''),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => ref.invalidate(
+                        _showPublic ? publicListsProvider : listsProvider,
+                      ),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Coba Lagi'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(160, 50),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            data: (lists) {
+              if (lists.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.list_alt_outlined,
+                          color: Colors.white38,
+                          size: 52,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _showPublic
+                              ? 'Belum ada list publik'
+                              : 'Belum ada list yang dibuat',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _showPublic
+                              ? 'Belum ada list publik dari user lain.'
+                              : 'Kurasi film favoritmu jadi daftar sendiri.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (!_showPublic) ...[
+                          const SizedBox(height: 20),
+                          ElevatedButton.icon(
+                            onPressed: () => showCreateListDialog(context, ref),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Buat List Baru'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.black,
+                              minimumSize: const Size(180, 48),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  for (final MovieList list in lists) ListsCard(list: list),
+                  if (!_showPublic) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => showCreateListDialog(context, ref),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Buat List Baru'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: const BorderSide(color: AppTheme.primary),
+                        minimumSize: const Size(double.infinity, 46),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Pemilih cakupan: list milik sendiri atau semua list publik.
+class _ScopeToggle extends StatelessWidget {
+  final bool showPublic;
+  final ValueChanged<bool> onChanged;
+
+  const _ScopeToggle({required this.showPublic, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            _toggleButton(context, 'Milik Saya', !showPublic),
+            _toggleButton(context, 'Semua Publik', showPublic),
+          ],
+        ),
       ),
-      error: (error, stackTrace) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.cloud_off_rounded,
-                color: Colors.white54,
-                size: 48,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Gagal memuat daftar',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString().replaceFirst('Exception: ', ''),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white60, fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => ref.invalidate(listsProvider),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Coba Lagi'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.black,
-                  minimumSize: const Size(160, 50),
-                ),
-              ),
-            ],
+    );
+  }
+
+  Widget _toggleButton(BuildContext context, String label, bool active) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onChanged(label == 'Semua Publik'),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFF2E3C4A) : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : AppTheme.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
-      data: (lists) {
-        if (lists.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.list_alt_outlined,
-                    color: Colors.white38,
-                    size: 52,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Belum ada list yang dibuat',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Kurasi film favoritmu jadi daftar sendiri.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white60, fontSize: 14),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () => showCreateListDialog(context, ref),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Buat List Baru'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size(180, 48),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-          children: [
-            for (final MovieList list in lists) ListsCard(list: list),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => showCreateListDialog(context, ref),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Buat List Baru'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primary,
-                side: const BorderSide(color: AppTheme.primary),
-                minimumSize: const Size(double.infinity, 46),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
 import '../models/movie.dart';
-import '../models/review.dart';
 import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
@@ -12,9 +11,8 @@ import '../providers/movie_provider.dart';
 import '../widgets/home_tab_bar.dart';
 import '../widgets/lists_tab.dart';
 import '../widgets/main_bottom_nav.dart';
-import '../widgets/poster_image.dart';
 import '../widgets/poster_tile.dart';
-import '../widgets/rating_stars.dart';
+import '../widgets/reviews_list.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -231,21 +229,11 @@ class _ReviewsTab extends ConsumerWidget {
         detail: error.toString().replaceFirst('Exception: ', ''),
         onRetry: () => ref.invalidate(myReviewsProvider),
       ),
-      data: (reviews) {
-        if (reviews.isEmpty) {
-          return const _EmptyState(
-            icon: Icons.rate_review_outlined,
-            title: 'Belum ada review',
-            message: 'Buka sebuah film lalu tulis review pertamamu.',
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-          itemCount: reviews.length,
-          itemBuilder: (context, index) => _ReviewCard(review: reviews[index]),
-        );
-      },
+      data: (reviews) => ReviewsList(
+        reviews: reviews,
+        emptyTitle: 'Belum ada review',
+        emptyMessage: 'Buka sebuah film lalu tulis review pertamamu.',
+      ),
     );
   }
 }
@@ -339,133 +327,6 @@ class _JournalTab extends StatelessWidget {
   }
 }
 
-/// Satu kartu review: poster, judul film, rating, dan teksnya.
-class _ReviewCard extends StatelessWidget {
-  final Review review;
-
-  const _ReviewCard({required this.review});
-
-  @override
-  Widget build(BuildContext context) {
-    final Movie? movie = review.movie;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (movie != null)
-            InkWell(
-              onTap: () => context.push('/movie/${movie.id}'),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(3),
-                      border: Border.all(color: Colors.white24, width: 1),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: PosterImage(
-                        url: movie.posterUrl,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          movie.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        if (review.rating > 0)
-                          RatingStars(rating: review.rating, size: 13),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (review.content.trim().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              review.content,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Satu kartu kurasi: judul, deskripsi, dan jumlah film.
-/// Empty state generik untuk tab yang datanya kosong.
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String message;
-
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white38, size: 52),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white60, fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Error state dengan tombol coba lagi.
 class _ErrorState extends StatelessWidget {
   final String message;
   final String detail;

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/movie.dart';
 import '../models/profile_stats.dart';
+import '../models/review.dart';
 import '../providers/auth_provider.dart';
 import '../repositories/favorite_repository.dart';
 import '../repositories/profile_repository.dart';
@@ -31,4 +32,16 @@ final favoritesProvider = FutureProvider<List<Movie>>((ref) async {
 
   final repo = ref.watch(favoriteRepositoryProvider);
   return repo.getFavorites();
+});
+
+/// Review yang pernah ditulis user yang sedang login.
+///
+/// Endpoint-nya butuh token, jadi untuk guest tidak dipanggil sama sekali.
+final profileReviewsProvider = FutureProvider<List<Review>>((ref) async {
+  if (!ref.watch(authProvider).isAuthenticated) {
+    return const [];
+  }
+
+  final repo = ref.watch(profileRepositoryProvider);
+  return repo.getReviews();
 });

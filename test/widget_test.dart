@@ -268,18 +268,39 @@ void main() {
     expect(find.textContaining('Joined'), findsOneWidget);
     expect(find.text('FAVOURITE FILMS'), findsOneWidget);
 
-    // Empat tab di atas profil. ("Profile" juga dipakai label navbar, jadi
-    // yang ini dicek dengan findsWidgets.)
+    // Lima tab di atas profil. ("Profile", "Diary", "Lists", dan "Watchlist"
+    // juga dipakai baris statistik, jadi label tabnya dicari di dalam TabBar.)
+    final tabLabels = find.descendant(
+      of: find.byType(TabBar),
+      matching: find.byType(Text),
+    );
     expect(find.text('Profile'), findsWidgets);
-    expect(find.text('Diary'), findsOneWidget);
-    expect(find.text('Lists'), findsOneWidget);
-    expect(find.text('Watchlist'), findsOneWidget);
+    expect(tabLabels, findsNWidgets(5));
+    expect(
+      find.descendant(of: find.byType(TabBar), matching: find.text('Diary')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(TabBar), matching: find.text('Reviews')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(TabBar), matching: find.text('Lists')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(TabBar),
+        matching: find.text('Watchlist'),
+      ),
+      findsOneWidget,
+    );
 
     // Angka statistik dari API (barisnya di bawah, harus digulir dulu).
     await _scrollProfileTab(tester);
-    expect(find.text('Films'), findsOneWidget);
+    expect(_inProfileList('Films'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
-    expect(find.text('Reviews'), findsOneWidget);
+    expect(_inProfileList('Reviews'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
   });
   testWidgets('Profile: baris Films/Diary/Watchlist bisa diklik', (

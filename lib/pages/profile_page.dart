@@ -13,6 +13,7 @@ import '../widgets/lists_tab.dart';
 import '../widgets/lb_widgets.dart';
 import '../widgets/main_bottom_nav.dart';
 import '../widgets/poster_tile.dart';
+import '../widgets/reviews_list.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -31,7 +32,7 @@ class ProfilePage extends ConsumerWidget {
     }
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         backgroundColor: LbColors.profileBg,
         appBar: AppBar(
@@ -61,12 +62,18 @@ class ProfilePage extends ConsumerWidget {
             ),
           ],
           bottom: const LbTabBar(
-            labels: ['Profile', 'Diary', 'Lists', 'Watchlist'],
+            labels: ['Profile', 'Diary', 'Reviews', 'Lists', 'Watchlist'],
           ),
         ),
         // TabBarView supaya tab bisa digeser (swipe).
         body: const TabBarView(
-          children: [_ProfileTab(), _DiaryTab(), _ListsTab(), _WatchlistTab()],
+          children: [
+            _ProfileTab(),
+            _DiaryTab(),
+            _ReviewsTab(),
+            _ListsTab(),
+            _WatchlistTab(),
+          ],
         ),
         bottomNavigationBar: const MainBottomNav(currentIndex: 4),
       ),
@@ -186,6 +193,61 @@ class _DiaryTab extends ConsumerWidget {
         ),
       ),
       data: (days) => DiaryList(days: days),
+    );
+  }
+}
+
+/// Tab "Reviews": review yang pernah ditulis user ini.
+class _ReviewsTab extends ConsumerWidget {
+  const _ReviewsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reviewsAsync = ref.watch(profileReviewsProvider);
+
+    return reviewsAsync.when(
+      loading: () =>
+          const Center(child: CircularProgressIndicator(color: LbColors.green)),
+      error: (error, stackTrace) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.cloud_off_rounded,
+                color: Colors.white54,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Gagal memuat review',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => ref.invalidate(profileReviewsProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: LbColors.green,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(160, 50),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (reviews) => ReviewsList(
+        reviews: reviews,
+        emptyTitle: 'Belum ada review',
+        emptyMessage: 'Review yang kamu tulis akan muncul di sini.',
+      ),
     );
   }
 }

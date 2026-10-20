@@ -62,3 +62,9 @@ final listsProvider = FutureProvider<List<MovieList>>((ref) async {
   final repo = ref.watch(listRepositoryProvider);
   return repo.getMyLists();
 });
+
+// Semua kurasi yang ditandai publik, milik siapa pun.
+final publicListsProvider = FutureProvider<List<MovieList>>((ref) async {
+  final repo = ref.watch(listRepositoryProvider);
+  return repo.getPublicLists();
+});
