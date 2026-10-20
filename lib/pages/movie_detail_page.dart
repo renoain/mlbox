@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
+import '../providers/auth_provider.dart';
+import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
 import '../widgets/rating_stars.dart';
 
@@ -138,49 +140,7 @@ class MovieDetailPage extends ConsumerWidget {
                       const SizedBox(height: 20),
 
                       // Tombol Watchlist & Watched
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Watchlist belum tersedia pada tahap ini.',
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('WATCHLIST'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.black,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Watched belum tersedia pada tahap ini.',
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.check, size: 18),
-                              label: const Text('WATCHED'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3B444F),
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      _LibraryActions(movieId: movie.id),
                       const SizedBox(height: 24),
 
                       // Sinopsis
@@ -261,6 +221,129 @@ class MovieDetailPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LibraryActions extends ConsumerStatefulWidget {
+  final int movieId;
+  const _LibraryActions({required this.movieId});
+
+  @override
+  ConsumerState<_LibraryActions> createState() => _LibraryActionsState();
+}
+
+class _LibraryActionsState extends ConsumerState<_LibraryActions> {
+  bool _busy = false;
+
+  bool get _isLoggedIn => ref.read(authProvider).isAuthenticated;
+
+  void _requireLogin() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Masuk dulu untuk memakai fitur ini.'),
+        action: SnackBarAction(
+          label: 'Masuk',
+          onPressed: () => context.push('/login'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleWatchlist(bool currentlyIn) async {
+    if (!_isLoggedIn) {
+      _requireLogin();
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final repo = ref.read(watchlistRepositoryProvider);
+      if (currentlyIn) {
+        await repo.remove(widget.movieId);
+      } else {
+        await repo.add(widget.movieId);
+      }
+      ref.invalidate(watchlistProvider);
+      if (mounted) {
+        _showMessage(
+          currentlyIn ? 'Dihapus dari watchlist.' : 'Ditambahkan ke watchlist.',
+        );
+      }
+    } catch (e) {
+      if (mounted) _showMessage(e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _toggleWatched(bool currentlyWatched) async {
+    if (!_isLoggedIn) {
+      _requireLogin();
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final repo = ref.read(watchedRepositoryProvider);
+      if (currentlyWatched) {
+        await repo.unwatch(widget.movieId);
+      } else {
+        await repo.markWatched(widget.movieId);
+        // Backend otomatis mengeluarkan film dari watchlist.
+        ref.invalidate(watchlistProvider);
+      }
+      ref.invalidate(watchedProvider);
+      if (mounted) {
+        _showMessage(
+          currentlyWatched
+              ? 'Dibatalkan dari watched.'
+              : 'Ditandai sudah ditonton.',
+        );
+      }
+    } catch (e) {
+      if (mounted) _showMessage(e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inWatchlist = ref.watch(isInWatchlistProvider(widget.movieId));
+    final isWatched = ref.watch(isWatchedProvider(widget.movieId));
+
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _busy ? null : () => _toggleWatchlist(inWatchlist),
+            icon: Icon(inWatchlist ? Icons.check : Icons.add, size: 18),
+            label: Text(inWatchlist ? 'IN WATCHLIST' : 'WATCHLIST'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.black,
+              minimumSize: const Size(0, 50),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _busy ? null : () => _toggleWatched(isWatched),
+            icon: Icon(isWatched ? Icons.check : Icons.done, size: 18),
+            label: Text(isWatched ? 'WATCHED' : 'MARK WATCHED'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B444F),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 50),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
