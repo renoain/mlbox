@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "Mailboxh",
+    "description": "Koleksi endpoint Mailboxh. Isi token dari respons login ke variable token atau admin_token. Seluruh request memakai header Accept: application/json.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{base_url}}/register",
+            "description": "Tidak butuh token.",
+            "body": {"mode": "raw", "raw": "{\"name\":\"Budi\",\"email\":\"budi@example.com\",\"password\":\"password123\",\"password_confirmation\":\"password123\"}", "options": {"raw": {"language": "json"}}}
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{base_url}}/login",
+            "description": "Tidak butuh token. Salin token dari respons ke variable token.",
+            "body": {"mode": "raw", "raw": "{\"email\":\"admin@mailboxh.test\",\"password\":\"password123\"}", "options": {"raw": {"language": "json"}}}
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/logout",
+            "description": "Butuh token."
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/me",
+            "description": "Butuh token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Movies",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{base_url}}/movies?q=&genre_id=&sort=latest",
+            "description": "Publik, tanpa token tetap bisa."
+          }
+        },
+        {
+          "name": "Detail",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/movies/1",
+            "description": "Publik. Dengan token mengisi liked, in_watchlist, diary_entry_id."
+          }
+        },
+        {
+          "name": "Home",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{base_url}}/home",
+            "description": "Butuh token. Enam section sekaligus."
+          }
+        },
+        {
+          "name": "Genres",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{base_url}}/genres",
+            "description": "Publik, tanpa token tetap bisa."
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Watchlist List",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/watchlist", "description": "Butuh token."}
+        },
+        {
+          "name": "Watchlist Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/watchlist", "description": "Butuh token.", "body": {"mode": "raw", "raw": "{\"movie_id\":1}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Watched Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/watched", "description": "Butuh token.", "body": {"mode": "raw", "raw": "{\"movie_id\":1,\"watched_at\":\"2026-10-14\"}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Review Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/reviews", "description": "Butuh token. Rating 1 sampai 5.", "body": {"mode": "raw", "raw": "{\"movie_id\":1,\"rating\":4,\"content\":\"Bagus.\"}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Diary Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/diary", "description": "Butuh token.", "body": {"mode": "raw", "raw": "{\"movie_id\":1,\"watched_date\":\"2026-10-14\",\"note\":\"Nonton bareng teman.\"}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "List Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/lists", "description": "Butuh token.", "body": {"mode": "raw", "raw": "{\"title\":\"Klasik 90an\",\"is_public\":true}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Tag Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/tags", "description": "Butuh token.", "body": {"mode": "raw", "raw": "{\"name\":\"rewatch\"}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Favorites Update",
+          "request": {"method": "PUT", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/favorites", "description": "Butuh token. Maksimal 4 item.", "body": {"mode": "raw", "raw": "{\"items\":[{\"position\":1,\"movie_id\":1}]}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Like Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/likes", "description": "Butuh token.", "body": {"mode": "raw", "raw": "{\"movie_id\":1}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Follow Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/follow/2", "description": "Butuh token. Path memakai id user yang diikuti."}
+        },
+        {
+          "name": "Feed",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/feed", "description": "Butuh token."}
+        },
+        {
+          "name": "Profile",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/profile", "description": "Butuh token."}
+        },
+        {
+          "name": "Profile Stats",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/profile/stats", "description": "Butuh token."}
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/dashboard", "description": "Butuh token admin."}
+        },
+        {
+          "name": "Movie Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/movies", "description": "Butuh token admin. Multipart dengan field poster opsional.", "body": {"mode": "formdata", "formdata": [{"key": "title", "value": "Judul Film", "type": "text"}, {"key": "release_date", "value": "1994-01-01", "type": "text"}, {"key": "poster", "type": "file", "src": "/path/ke/poster.jpg"}]}}
+        },
+        {
+          "name": "Batch Import",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/movies/batch-import", "description": "Butuh token admin. Upload zip berisi movies.json dan folder posters.", "body": {"mode": "formdata", "formdata": [{"key": "file", "type": "file", "src": "/path/ke/batch.zip"}]}}
+        },
+        {
+          "name": "Batch Resolve",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/movies/batch-resolve", "description": "Butuh token admin.", "body": {"mode": "raw", "raw": "{\"mapping\":{\"12\":\"/path/ke/poster.jpg\"}}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Genre Store",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/genres", "description": "Butuh token admin.", "body": {"mode": "raw", "raw": "{\"name\":\"Sci-Fi\"}", "options": {"raw": {"language": "json"}}}}
+        },
+        {
+          "name": "Users",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/users", "description": "Butuh token admin."}
+        },
+        {
+          "name": "Reviews",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/reviews", "description": "Butuh token admin."}
+        },
+        {
+          "name": "Lists",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/lists", "description": "Butuh token admin."}
+        },
+        {
+          "name": "Tags",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/tags", "description": "Butuh token admin."}
+        },
+        {
+          "name": "Audit Logs",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{admin_token}}"}], "url": "{{base_url}}/admin/audit-logs", "description": "Butuh token admin."}
+        }
+      ]
+    }
+  ]
+}
