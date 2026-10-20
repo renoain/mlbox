@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
+import '../widgets/login_prompt.dart';
 import '../widgets/rating_stars.dart';
 
 class ReviewFormPage extends ConsumerStatefulWidget {
@@ -27,6 +28,12 @@ class _ReviewFormPageState extends ConsumerState<ReviewFormPage> {
   }
 
   Future<void> _submitReview() async {
+    // Guest diarahkan ke sheet ajakan masuk lebih dulu.
+    if (!await ensureLoggedIn(context, ref)) {
+      return;
+    }
+    if (!mounted) return;
+
     if (_currentRating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

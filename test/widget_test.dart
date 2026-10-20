@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mlbox/core/app_theme.dart';
 import 'package:mlbox/models/movie.dart';
@@ -24,6 +25,9 @@ import 'package:mlbox/repositories/movie_repository.dart';
 import 'package:mlbox/widgets/main_bottom_nav.dart';
 
 void main() {
+  // Preferensi lokal perlu mock supaya plugin bisa jalan di test.
+  SharedPreferences.setMockInitialValues({});
+
   testWidgets('Guest: navbar hanya 3 ikon dan menu Account membuka Login', (
     WidgetTester tester,
   ) async {
@@ -400,6 +404,103 @@ void main() {
     expect(find.text('Arrival'), findsOneWidget);
     expect(find.text('Ditonton 20 Okt 2026'), findsOneWidget);
   });
+  testWidgets('Guest: tombol Mark Watched memunculkan sheet ajakan masuk', (
+    WidgetTester tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/movie/3',
+      routes: [
+        GoRoute(
+          path: '/movie/:id',
+          builder: (_, state) => MovieDetailPage(
+            movieId: int.parse(state.pathParameters['id'] ?? '0'),
+          ),
+        ),
+        GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          movieDetailProvider(
+            3,
+          ).overrideWith((ref) async => const Movie(id: 3, title: 'Aquaman')),
+          // Reviews juga dioverride, kalau tidak spinner-nya berputar tanpa henti.
+          movieReviewsProvider(3).overrideWith((ref) async => const []),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Without overriding authProvider, the user is a guest.
+    await tester.ensureVisible(find.text('MARK WATCHED'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('MARK WATCHED'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ingin mencatat film ini?'), findsOneWidget);
+    expect(find.text('MASUK / DAFTAR'), findsOneWidget);
+    expect(find.text('Nanti Saja'), findsOneWidget);
+
+    // "Nanti Saja" menutup sheet-nya.
+    await tester.tap(find.text('Nanti Saja'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ingin mencatat film ini?'), findsNothing);
+
+    // "Masuk / Daftar" benar-benar membuka halaman login.
+    await tester.tap(find.text('MARK WATCHED'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('MASUK / DAFTAR'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sign in to MLBox'), findsOneWidget);
+  });
+
+  testWidgets('Settings: menu Bahasa membuka pilihan Indonesia dan English', (
+    WidgetTester tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/settings',
+      routes: [
+        GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+        GoRoute(path: '/profile', builder: (_, _) => const _HomeStub()),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Bahasa / Language'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Bahasa / Language'));
+    await tester.pumpAndSettle();
+
+    // "Indonesia" juga muncul di tile (nilai bahasa saat ini), jadi
+    // pilihannya dicek di dalam dialog saja.
+    final dialog = find.byType(SimpleDialog);
+    expect(
+      find.descendant(of: dialog, matching: find.text('Indonesia')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.text('English')),
+      findsOneWidget,
+    );
+
+    // Pilih English -> ada konfirmasi.
+    await tester.tap(
+      find.descendant(of: dialog, matching: find.text('English')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Language changed to English'), findsOneWidget);
+  });
+
   testWidgets('Favourite Films: pilih film lalu tersimpan ke API', (
     WidgetTester tester,
   ) async {
@@ -474,8 +575,9 @@ void main() {
       await tester.pump();
 
       // Ikon tidak aktif memakai gaya outline, ikon aktif memakai filled.
-      expect(find.byIcon(Icons.home), findsOneWidget);
-      expect(find.byIcon(Icons.home_outlined), findsNothing);
+      // Item pertama member = Library, sama seperti item kedua guest.
+      expect(find.byIcon(Icons.video_library), findsOneWidget);
+      expect(find.byIcon(Icons.video_library_outlined), findsNothing);
       expect(find.byIcon(Icons.search), findsOneWidget);
       expect(find.byIcon(Icons.add_circle), findsOneWidget);
       expect(find.byIcon(Icons.bolt_outlined), findsOneWidget);
@@ -498,7 +600,7 @@ void main() {
       final capsule = tester.widget<AnimatedContainer>(
         find
             .ancestor(
-              of: find.byIcon(Icons.home),
+              of: find.byIcon(Icons.video_library),
               matching: find.byType(AnimatedContainer),
             )
             .first,

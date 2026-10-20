@@ -71,11 +71,11 @@ class MainBottomNav extends ConsumerWidget {
     return [
       BottomNavigationBarItem(
         icon: _CapsuleIcon(
-          activeIcon: Icons.home,
-          inactiveIcon: Icons.home_outlined,
+          activeIcon: Icons.video_library,
+          inactiveIcon: Icons.video_library_outlined,
           isActive: currentIndex == 0,
         ),
-        label: 'Home',
+        label: 'Library',
       ),
       BottomNavigationBarItem(
         icon: _CapsuleIcon(

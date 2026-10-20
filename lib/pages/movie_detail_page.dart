@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../core/app_theme.dart';
 import '../models/movie.dart';
 import '../models/review.dart';
-import '../providers/auth_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/movie_provider.dart';
 import '../widgets/lists_tab.dart';
+import '../widgets/login_prompt.dart';
 import '../widgets/poster_image.dart';
 import '../widgets/rating_stars.dart';
 
@@ -156,21 +156,11 @@ class MovieDetailPage extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () {
-                                if (!ref.read(authProvider).isAuthenticated) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'Masuk dulu untuk menulis review.',
-                                      ),
-                                      action: SnackBarAction(
-                                        label: 'Masuk',
-                                        onPressed: () => context.push('/login'),
-                                      ),
-                                    ),
-                                  );
+                              onPressed: () async {
+                                if (!await ensureLoggedIn(context, ref)) {
                                   return;
                                 }
+                                if (!context.mounted) return;
                                 // Pindah ke form review, bawa ID film
                                 context.push('/movie/${movie.id}/review');
                               },
@@ -548,16 +538,8 @@ class _LikeButtonState extends ConsumerState<_LikeButton> {
   Future<void> _toggle() async {
     if (_busy) return;
 
-    if (!ref.read(authProvider).isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Masuk dulu untuk menandai film sebagai suka.'),
-          action: SnackBarAction(
-            label: 'Masuk',
-            onPressed: () => context.push('/login'),
-          ),
-        ),
-      );
+    // Guest diarahkan ke sheet ajakan masuk lebih dulu.
+    if (!await ensureLoggedIn(context, ref)) {
       return;
     }
 
@@ -646,23 +628,13 @@ class _LibraryActions extends ConsumerStatefulWidget {
 class _LibraryActionsState extends ConsumerState<_LibraryActions> {
   bool _busy = false;
 
-  bool get _isLoggedIn => ref.read(authProvider).isAuthenticated;
-
-  void _requireLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Masuk dulu untuk memakai fitur ini.'),
-        action: SnackBarAction(
-          label: 'Masuk',
-          onPressed: () => context.push('/login'),
-        ),
-      ),
-    );
+  /// Guest diarahkan ke sheet ajakan masuk.
+  Future<bool> _requireLogin() async {
+    return ensureLoggedIn(context, ref);
   }
 
   Future<void> _toggleWatchlist(bool currentlyIn) async {
-    if (!_isLoggedIn) {
-      _requireLogin();
+    if (!await _requireLogin()) {
       return;
     }
     setState(() => _busy = true);
@@ -687,8 +659,7 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
   }
 
   Future<void> _toggleWatched(bool currentlyWatched) async {
-    if (!_isLoggedIn) {
-      _requireLogin();
+    if (!await _requireLogin()) {
       return;
     }
     setState(() => _busy = true);
@@ -725,10 +696,10 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
   }
 
   Future<void> _logFilm() async {
-    if (!_isLoggedIn) {
-      _requireLogin();
+    if (!await _requireLogin()) {
       return;
     }
+    if (!mounted) return;
 
     final result = await showDialog<_LogFilmData>(
       context: context,
@@ -842,18 +813,10 @@ class _LibraryActionsState extends ConsumerState<_LibraryActions> {
 
   /// Buka sheet untuk memilih list tujuan film ini.
   Future<void> _openAddToList(BuildContext context, WidgetRef ref) async {
-    if (!ref.read(authProvider).isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Masuk dulu untuk menambah film ke list.'),
-          action: SnackBarAction(
-            label: 'Masuk',
-            onPressed: () => context.push('/login'),
-          ),
-        ),
-      );
+    if (!await ensureLoggedIn(context, ref)) {
       return;
     }
+    if (!context.mounted) return;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -1181,23 +1144,13 @@ class _RatingSectionState extends ConsumerState<_RatingSection> {
   int _myRating = 0;
   bool _busy = false;
 
-  bool get _isLoggedIn => ref.read(authProvider).isAuthenticated;
-
-  void _requireLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Masuk dulu untuk memberi rating.'),
-        action: SnackBarAction(
-          label: 'Masuk',
-          onPressed: () => context.push('/login'),
-        ),
-      ),
-    );
+  /// Guest diarahkan ke sheet ajakan masuk.
+  Future<bool> _requireLogin() async {
+    return ensureLoggedIn(context, ref);
   }
 
   Future<void> _rate(int value) async {
-    if (!_isLoggedIn) {
-      _requireLogin();
+    if (!await _requireLogin()) {
       return;
     }
     if (_busy) return;

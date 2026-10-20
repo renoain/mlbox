@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/app_language.dart';
 import '../core/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/language_provider.dart';
 import '../widgets/favorite_posters_section.dart';
 
 /// Warna khusus halaman settings (diambil dari desain Letterboxd).
@@ -30,6 +32,65 @@ class SettingsPage extends ConsumerWidget {
     if (context.mounted) {
       context.go('/login');
     }
+  }
+
+  /// Dialog pilihan bahasa.
+  ///
+  /// Pilihan disimpan ke penyimpanan lokal dan langsung dipakai untuk teks
+  /// di sheet ajakan masuk.
+  Future<void> _pickLanguage(BuildContext context, WidgetRef ref) async {
+    final current = ref.read(languageProvider);
+
+    final picked = await showDialog<AppLanguage>(
+      context: context,
+      builder: (dialogContext) {
+        return SimpleDialog(
+          backgroundColor: _bgDark,
+          title: const Text(
+            'Bahasa / Language',
+            style: TextStyle(color: Colors.white, fontSize: 17),
+          ),
+          children: [
+            for (final AppLanguage language in AppLanguage.values)
+              SimpleDialogOption(
+                onPressed: () => Navigator.of(dialogContext).pop(language),
+                child: Row(
+                  children: [
+                    Icon(
+                      language == current
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                      color: language == current ? _orange : _value,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      language.label,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+
+    if (picked == null) return;
+
+    await ref.read(languageProvider.notifier).setLanguage(picked);
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          picked == AppLanguage.indonesia
+              ? 'Bahasa diubah ke Indonesia'
+              : 'Language changed to English',
+        ),
+      ),
+    );
   }
 
   @override
@@ -82,6 +143,12 @@ class SettingsPage extends ConsumerWidget {
                           label: 'Password and authentication',
                           chevron: true,
                           onTap: () => _notAvailable(context),
+                        ),
+                        _Tile(
+                          label: 'Bahasa / Language',
+                          value: ref.watch(languageProvider).label,
+                          chevron: true,
+                          onTap: () => _pickLanguage(context, ref),
                         ),
                         _Tile(
                           label: 'Sign out',
