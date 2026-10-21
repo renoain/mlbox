@@ -95,6 +95,25 @@ mlbox/
 | Composer | 2.x |
 | MySQL | 8.x (database `mailboxh`) |
 
+### Setup otomatis (Windows)
+
+Dari folder root proyek:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+```
+
+Script akan memeriksa PHP/Composer/Flutter, menjalankan `flutter pub get` dan
+`composer install`, menyiapkan `backend/.env`, membuat database `mailboxh`,
+migrasi + seeder, serta `storage:link`.
+
+Opsi:
+
+- `-Fresh` — hapus semua tabel/data lalu migrasi ulang (hati-hati).
+- `-SkipDemo` — lewati pengisian `DemoContentSeeder`.
+
+Setelah selesai, lanjutkan menjalankan backend dan Flutter seperti di bawah.
+
 ### 1. Jalankan Backend (Laravel)
 
 ```bash
